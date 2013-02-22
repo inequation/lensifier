@@ -1,0 +1,3 @@
+Lensifier will be a tiny little library that does some lens simulation post-processing effects in OpenGL and Direct3D, given bound texture samplers to scene colour and depth.
+
+Created as a university project in computer graphics at the Silesian University of Technology.
