@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="lensifier" Database="./liblensifier.tags">
+  <Project Name="liblensifier" Path="liblensifier/liblensifier.project" Active="Yes"/>
+  <Project Name="demo_gl" Path="demo-gl/demo_gl.project" Active="No"/>
+  <Project Name="renderer_gl" Path="liblensifier-renderer-gl/renderer_gl.project"/>
+  <Project Name="renderer_d3d" Path="liblensifier-renderer-d3d/renderer_d3d.project"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Project Name="liblensifier" ConfigName="Debug"/>
+      <Project Name="demo_gl" ConfigName="Debug"/>
+      <Project Name="renderer_gl" ConfigName="Debug"/>
+      <Project Name="renderer_d3d" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Project Name="liblensifier" ConfigName="Release"/>
+      <Project Name="demo_gl" ConfigName="Release"/>
+      <Project Name="renderer_gl" ConfigName="Release"/>
+      <Project Name="renderer_d3d" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>
