@@ -89,8 +89,10 @@
   </Settings>
   <VirtualDirectory Name="src">
     <File Name="GLRenderer.cpp"/>
+    <File Name="GLEffect.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="GLRenderer.h"/>
+    <File Name="GLEffect.h"/>
   </VirtualDirectory>
 </CodeLite_Project>
