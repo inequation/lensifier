@@ -9,12 +9,13 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="liblensifier.cpp"/>
-    <File Name="Effect.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="Renderer.h"/>
     <File Name="../../include/liblensifier.h"/>
     <File Name="Effect.h"/>
+    <File Name="DOFEffect.h"/>
+    <File Name="Utils.h"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>

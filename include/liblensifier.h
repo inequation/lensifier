@@ -24,24 +24,6 @@ enum LensifierRenderAPI
 	RA_Direct3D11,
 };
 
-typedef struct
-{
-	LUINT	ScreenWidth;
-	LUINT	ScreenHeight;
-	
-	/** Whether to enable the Distance of Focus effect. */
-	bool	EnableDOF;
-	/** Focus distance in the [0..1] range. */
-	float	FocusDistance;
-	/** Minimum scale of focus blur in the [0..1] range. */
-	float	MinFocusScale;
-	/** Maximum scale of focus blur on the near side, in the [0..1] range. */
-	float	MaxFocusScaleNear;
-	/** Maximum scale of focus blur on the far side, in the [0..1] range. */
-	float	MaxFocusScaleFar;
-}
-LensifierConfig;
-
 /**
  * Initializes Lensifier for the given API.
  * @param	RendererSpecificData	D3D device pointer; ignored in OpenGL
@@ -52,17 +34,17 @@ bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData);
 void LensifierShutdown();
 
 /**
- * Sets a new effect configuration. The memory is owned by client application.
- * You can pass NULL to switch all effects off.
- */
-void LensifierConfigure(LensifierConfig *Config);
-
-/**
- * Renders all the configured effects.
+ * Sets up the global library settings.
+ * @param	ScreenWidth			screen X resolution
+ * @param	ScreenHeight		screen Y resolution
  * @param	ColourTextureSlot	index of the texture slot to which scene colour is bound (sampler index in D3D, texture unit index in GL)
  * @param	DepthTextureSlot	index of the texture slot to which scene depth is bound (sampler index in D3D, texture unit index in GL)
  */
-void LensifierRender(LUINT ColourTextureSlot, LUINT DepthTextureSlot);
+void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
+	LUINT ColourTextureSlot, LUINT DepthTextureSlot);
+
+/** Renders all the configured effects. */
+void LensifierRender();
 
 #ifdef __cplusplus
 }

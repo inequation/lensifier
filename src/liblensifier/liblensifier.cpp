@@ -20,7 +20,6 @@
 using namespace Lensifier;
 
 Renderer		*GRenderer = nullptr;
-LensifierConfig	*GConfig = nullptr;
 
 extern "C"
 {
@@ -72,33 +71,30 @@ void LensifierShutdown()
 }
 
 /**
- * Sets a new effect configuration. The memory is owned by client application.
- * May block for a while to initialize effects  You can pass nullptr to switch all effects off.
+ * Sets up the global library settings.
+ * @param	ScreenWidth			screen X resolution
+ * @param	ScreenHeight		screen Y resolution
+ * @param	ColourTextureSlot	index of the texture slot to which scene colour is bound (sampler index in D3D, texture unit index in GL)
+ * @param	DepthTextureSlot	index of the texture slot to which scene depth is bound (sampler index in D3D, texture unit index in GL)
  */
-void LensifierConfigure(LensifierConfig *Config)
+void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
+	LUINT ColourTextureSlot, LUINT DepthTextureSlot)
 {
-	// notify the re
-	if (GRenderer)
-		GRenderer->OnConfigChanged(GConfig, Config);
-
-	GConfig = Config;
-}
-
-/**
- * Renders all the configured effects.
- * @param	ColourTextureSlot	index of the texture slot to which scene colour is bound (sampler index in D3D, active texture index in GL)
- * @param	DepthTextureSlot	index of the texture slot to which scene depth is bound (sampler index in D3D, active texture index in GL)
- */
-void LensifierRender(LUINT ColourTextureSlot, LUINT DepthTextureSlot)
-{
-	// early out on null config
-	if (!GConfig)
+	// early out on null renderer
+	if (!GRenderer)
 		return;
 	
-	GRenderer->SetSceneTextureSlots(ColourTextureSlot, DepthTextureSlot);
+	GRenderer->Setup(ScreenWidth, ScreenHeight,
+		ColourTextureSlot, DepthTextureSlot);
+}
+
+/** Renders all the configured effects. */
+void LensifierRender()
+{
+	// early out on null renderer
+	if (!GRenderer)
+		return;
 	
-	if (GConfig->EnableDOF)
-		GRenderer->RenderDOF();
 }
 
 }
