@@ -9,6 +9,12 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="liblensifier.cpp"/>
+    <File Name="DOFEffect.cpp"/>
+    <VirtualDirectory Name="shaders">
+      <File Name="shaders/GenericEffect.vs"/>
+      <File Name="shaders/DOFEffect.ps"/>
+    </VirtualDirectory>
+    <File Name="Effect.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="Renderer.h"/>

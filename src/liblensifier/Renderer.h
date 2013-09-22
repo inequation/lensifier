@@ -23,8 +23,13 @@ public:
 	virtual void Setup(LUINT ScreenWidth, LUINT ScreenHeight,
 		LUINT ColourTextureSlot, LUINT DepthTextureSlot) = 0;
 	
-	/** Renders the Depth of Field effect using current configuration. */
-	virtual void RenderDOF() = 0;
+	/** Renders the configured effects. */
+	virtual void Render() = 0;
+	
+	virtual void DOFSetEnabled(bool) = 0;
+	#define OP_PER_PARAM(Type, Name, Default) virtual void DOFSet ## Name(Type) = 0;
+	#include "DOFEffect.h"
+	#undef OP_PER_PARAM
 };
 
 extern Renderer		*GRenderer;
@@ -34,14 +39,20 @@ struct CachedShaderParam
 {
 	public:
 		CachedShaderParam(const typename RendererClass::ProgramHandle& InProgram,
-			const char *Name, const T& InitVal)
-			: Handle(((RendererClass *)GRenderer)->GetShaderParameter(InProgram, Name))
+			const T& InitVal)
+			: Handle(-1)
 			, CachedValue(InitVal)
 		{}
 		
 		~CachedShaderParam()
 		{
 			((RendererClass *)GRenderer)->ReleaseShaderParameter(Handle);
+		}
+		
+		void Register(typename RendererClass::ProgramHandle Program,
+			const char *Name)
+		{
+			((RendererClass *)GRenderer)->GetShaderParameter(Program, Name);
 		}
 		
 		void Set(const T& Val)

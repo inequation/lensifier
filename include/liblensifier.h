@@ -43,6 +43,13 @@ void LensifierShutdown();
 void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 	LUINT ColourTextureSlot, LUINT DepthTextureSlot);
 
+void LensifierDOFSetEnabled(bool);
+void LensifierDOFSetFocalDepth(float);
+void LensifierDOFSetFocalFocalLength(float);
+void LensifierDOFSetFStop(float);
+void LensifierDOFSetZNear(float);
+void LensifierDOFSetZFar(float);
+
 /** Renders all the configured effects. */
 void LensifierRender();
 

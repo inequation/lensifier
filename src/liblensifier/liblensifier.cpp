@@ -19,7 +19,7 @@
 
 using namespace Lensifier;
 
-Renderer		*GRenderer = nullptr;
+Renderer		*Lensifier::GRenderer = nullptr;
 
 extern "C"
 {
@@ -88,6 +88,21 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 		ColourTextureSlot, DepthTextureSlot);
 }
 
+#define DECLARE_RENDERER_FORWARDER(Effect, Type, Parameter)					\
+	void Lensifier ## Effect ## Set ## Parameter(Type New ## Parameter)		\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->Effect ## Set ## Parameter(New ## Parameter);			\
+	}
+
+DECLARE_RENDERER_FORWARDER(DOF, bool, Enabled)
+DECLARE_RENDERER_FORWARDER(DOF, float, FocalDepth)
+DECLARE_RENDERER_FORWARDER(DOF, float, FocalLength)
+DECLARE_RENDERER_FORWARDER(DOF, float, FStop)
+DECLARE_RENDERER_FORWARDER(DOF, float, ZNear)
+DECLARE_RENDERER_FORWARDER(DOF, float, ZFar)
+
 /** Renders all the configured effects. */
 void LensifierRender()
 {
@@ -95,6 +110,7 @@ void LensifierRender()
 	if (!GRenderer)
 		return;
 	
+	GRenderer->Render();
 }
 
 }

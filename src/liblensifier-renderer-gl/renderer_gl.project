@@ -9,6 +9,12 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="GLRenderer.cpp"/>
+    <VirtualDirectory Name="shaders">
+      <File Name="shaders/GLSLPostamble.ps"/>
+      <File Name="shaders/GLSLPostamble.vs"/>
+      <File Name="shaders/GLSLPreamble.ps"/>
+      <File Name="shaders/GLSLPreamble.vs"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="GLRenderer.h"/>

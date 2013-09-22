@@ -1,0 +1,8 @@
+liblensifier.tags
+liblensifier/Debug/
+**/Debug/
+**/Release/
+liblensifier/liblensifier.mk
+liblensifier/liblensifier.txt
+liblensifier-renderer-gl/renderer_gl.mk
+liblensifier-renderer-gl/renderer_gl.txt

@@ -13,6 +13,7 @@
 	// OpenGL function prefix
 	#define LGL(f)	gl##f
 	
+	#define GL_GLEXT_PROTOTYPES
 	#include <GL/gl.h>
 	#include <GL/glext.h>
 #endif
@@ -33,10 +34,7 @@ public:
 	/** Notification issued by the library that the configuration has changed. */
 	virtual void Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 		LUINT ColourTextureSlot, LUINT DepthTextureSlot);
-	
-	/** Renders the Depth of Field effect using current configuration. */
-	virtual void RenderDOF();
-	
+		
 	/**
 	 * Adds in the API-specific shader sugar, then compiles and links the shader
 	 * sources.
@@ -47,7 +45,7 @@ public:
 	/** Finds the location of the given uniform variable in the given program. */
 	inline GLint GetShaderParameter(GLuint Program, const char *ParamName)
 	{
-		return -1;
+		return LGL(GetUniformLocation)(Program, ParamName);
 	}
 	
 	inline void SetShaderParameterValue(GLint Param, const bool Value)
@@ -57,24 +55,43 @@ public:
 	inline void SetShaderParameterValue(GLint Param, const float Value)
 	{LGL(Uniform1f)(Param, Value);}	
 	inline void SetShaderParameterValue(GLint Param, const Vector2& Value)
-	{LGL(Uniform2fv)(Param, Value.V);}	
+	{LGL(Uniform2fv)(Param, 1, Value.V);}	
 	inline void SetShaderParameterValue(GLint Param, const Vector3& Value)
-	{LGL(Uniform3fv)(Param, Value.V);}	
+	{LGL(Uniform3fv)(Param, 1, Value.V);}	
 	inline void SetShaderParameterValue(GLint Param, const Vector4& Value)
-	{LGL(Uniform4fv)(Param, Value.V);}
+	{LGL(Uniform4fv)(Param, 1, Value.V);}
 	
 	/** Releases the given shader parameter. No-op in OpenGL. */
 	void ReleaseShaderParameter(GLint Param) {}
 	
 	/** Releases the given program. */
-	void ReleaseProgram(GLuint Program);
+	inline void ReleaseProgram(GLuint Program) {LGL(DeleteProgram)(Program);}
+	
+	virtual void DOFSetEnabled(bool);
+	#define OP_PER_PARAM(Type, Name, Default) virtual void DOFSet ## Name(Type);
+	#include "../liblensifier/DOFEffect.h"
+	#undef OP_PER_PARAM
+	
+	/** Renders the configured effects. */
+	virtual void Render();
 
 private:
-	LUINT	ScreenWidth, ScreenHeight;
+	inline void DrawFullScreenQuad()
+	{
+		LGL(VertexPointer)(2, GL_UNSIGNED_BYTE, 0, FSQuadVerts);
+		LGL(DrawElements)(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, FSQuadIndices);
+	}
 	
-	GLuint	SceneColourTexture, SceneDepthTexture;
-	
-	GLuint	DOFProgram;
+	static const GLubyte FSQuadVerts[];
+	static const GLubyte FSQuadIndices[];
+	static const char VertexShaderPreamble[];
+	static const size_t VertexShaderPreambleLen;
+	static const char VertexShaderPostamble[];
+	static const size_t VertexShaderPostambleLen;
+	static const char PixelShaderPreamble[];
+	static const size_t PixelShaderPreambleLen;
+	static const char PixelShaderPostamble[];
+	static const size_t PixelShaderPostambleLen;
 };
 
 }

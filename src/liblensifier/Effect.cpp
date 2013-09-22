@@ -3,14 +3,10 @@
 namespace Lensifier
 {
 
-Effect::Effect()
-{
-}
+#define STRINGIFY(x)	#x
 
-Effect::~Effect()
-{
-}
-
+const char EffectGenericVertexShader[] =
+	#include "shaders/GenericEffect.vs"
+;
 
 }
-
