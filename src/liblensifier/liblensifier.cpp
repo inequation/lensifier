@@ -39,6 +39,7 @@ bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData)
 #else
 			GRenderer = nullptr;
 #endif
+			break;
 		case RA_Direct3D9:
 		case RA_Direct3D10:
 		case RA_Direct3D11:
@@ -48,6 +49,7 @@ bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData)
 #else
 			GRenderer = nullptr;
 #endif
+			break;
 		default:
 			GRenderer = nullptr;
 	}
@@ -61,7 +63,7 @@ bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData)
 }
 
 /** Shuts the current Lensifier instance down. */
-void LensifierShutdown()
+void LensifierShutdown(void)
 {
 	if (GRenderer)
 	{
@@ -88,7 +90,23 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 		ColourTextureSlot, DepthTextureSlot);
 }
 
-#define DECLARE_RENDERER_FORWARDER(Effect, Type, Parameter)					\
+#define DECLARE_RENDERER_BINDING_FORWARDER(Effect)							\
+	void Lensifier ## Effect ## BeginSetup(void)							\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->Effect ## BeginSetup();									\
+	}																		\
+	void Lensifier ## Effect ## EndSetup(void)								\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->Effect ## EndSetup();									\
+	}
+
+DECLARE_RENDERER_BINDING_FORWARDER(DOF)
+
+#define DECLARE_RENDERER_PROPERTY_FORWARDER(Effect, Type, Parameter)		\
 	void Lensifier ## Effect ## Set ## Parameter(Type New ## Parameter)		\
 	{																		\
 		if (!GRenderer)														\
@@ -96,15 +114,15 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 		GRenderer->Effect ## Set ## Parameter(New ## Parameter);			\
 	}
 
-DECLARE_RENDERER_FORWARDER(DOF, bool, Enabled)
-DECLARE_RENDERER_FORWARDER(DOF, float, FocalDepth)
-DECLARE_RENDERER_FORWARDER(DOF, float, FocalLength)
-DECLARE_RENDERER_FORWARDER(DOF, float, FStop)
-DECLARE_RENDERER_FORWARDER(DOF, float, ZNear)
-DECLARE_RENDERER_FORWARDER(DOF, float, ZFar)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, bool, Enabled)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FocalDepth)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FocalLength)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FStop)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, ZNear)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, ZFar)
 
 /** Renders all the configured effects. */
-void LensifierRender()
+void LensifierRender(void)
 {
 	// early out on null renderer
 	if (!GRenderer)

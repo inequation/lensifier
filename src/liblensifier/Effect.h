@@ -51,7 +51,8 @@ protected:
 	{
 		SceneColour.Register(Program, "SceneColour");
 		SceneDepth.Register(Program, "SceneDepth");
-		TexelSize.Register(Program, "TexelSize");
+		ScreenSize.Register(Program, "ScreenSize");
+		TexelSize.Register(Program, "TexelSize");		
 	}
 	
 	bool						Enabled;

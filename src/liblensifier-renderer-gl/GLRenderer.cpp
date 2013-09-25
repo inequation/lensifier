@@ -13,11 +13,11 @@
 namespace Lensifier
 {
 
-const GLubyte GLRenderer::FSQuadVerts[] = {
-	0,		0,
-	0,		255,
-	255,	0,
-	255,	255,
+const GLfloat GLRenderer::FSQuadVerts[] = {
+	-1,	-1,	0,
+	-1,	1,	0,
+	1,	1,	0,
+	1,	-1,	0,
 };
 
 const GLubyte GLRenderer::FSQuadIndices[] = {0, 1, 2, 3};
@@ -27,14 +27,17 @@ const char GLRenderer::VertexShaderPreamble[] =
 	#include "shaders/GLSLPreamble.vs"
 ;
 const size_t GLRenderer::VertexShaderPreambleLen = strlen(VertexShaderPreamble);
+
 const char GLRenderer::VertexShaderPostamble[] =
 	#include "shaders/GLSLPostamble.vs"
 ;
 const size_t GLRenderer::VertexShaderPostambleLen = strlen(VertexShaderPostamble);
+
 const char GLRenderer::PixelShaderPreamble[] =
 	#include "shaders/GLSLPreamble.ps"
 ;
 const size_t GLRenderer::PixelShaderPreambleLen = strlen(PixelShaderPreamble);
+
 const char GLRenderer::PixelShaderPostamble[] =
 	#include "shaders/GLSLPostamble.ps"
 ;
@@ -52,15 +55,31 @@ GLRenderer::~GLRenderer()
 
 /** Notification issued by the library that the configuration has changed. */
 void GLRenderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
-		LUINT ColourTextureSlot, LUINT DepthTextureSlot)
+		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
 {
+	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTextureSlot, InDepthTextureSlot);
+	
 	if (DOF)
 	{
-		DOF->SceneColour.Set(ColourTextureSlot);
-		DOF->SceneDepth.Set(DepthTextureSlot);
+		DOF->SceneColour.Set(InColourTextureSlot);
+		DOF->SceneDepth.Set(InDepthTextureSlot);
 		DOF->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
 		DOF->TexelSize.Set(Vector2(1.f / InScreenWidth, 1.f / InScreenHeight));
 	}
+}
+
+void GLRenderer::DOFBeginSetup()
+{
+	if (!DOF || !DOF->GetEnabled())
+		return;
+	LGL(UseProgram)(DOF->Program);
+}
+
+void GLRenderer::DOFEndSetup()
+{
+	if (!DOF || !DOF->GetEnabled())
+		return;
+	LGL(UseProgram)(0);
 }
 
 void GLRenderer::DOFSetEnabled(bool NewEnabled)
@@ -70,6 +89,10 @@ void GLRenderer::DOFSetEnabled(bool NewEnabled)
 	else if (NewEnabled)
 	{
 		DOF = new DOFEffect<GLRenderer>();
+		DOFBeginSetup();
+		// FIXME: we don't need to re-set all effects, just DOF
+		Setup(ScreenWidth, ScreenHeight, ColourTextureSlot, DepthTextureSlot);
+		DOFEndSetup();
 		assert(DOF->GetEnabled());
 	}
 }
@@ -96,7 +119,7 @@ GLuint GLRenderer::CompileProgram(const char *VertexShaderSource, const char *Pi
 		VertexShaderSource,
 		VertexShaderPostamble
 	};
-	
+
 	const GLint VertexSourceLengths[] = {
 		(GLint)VertexShaderPreambleLen,
 		(GLint)strlen(VertexShaderSource),
@@ -116,7 +139,7 @@ GLuint GLRenderer::CompileProgram(const char *VertexShaderSource, const char *Pi
 	};
 	
 	GLuint VS = LGL(CreateShader)(GL_VERTEX_SHADER);
-	GLuint PS = LGL(CreateShader)(GL_VERTEX_SHADER);
+	GLuint PS = LGL(CreateShader)(GL_FRAGMENT_SHADER);
 	
 	LGL(ShaderSource)(VS, 3, VertexSources, VertexSourceLengths);
 	LGL(ShaderSource)(PS, 3, PixelSources, PixelSourceLengths);

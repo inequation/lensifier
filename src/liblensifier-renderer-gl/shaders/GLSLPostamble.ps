@@ -2,8 +2,8 @@ STRINGIFY(
 
 void main()
 {
-	PixelInput PI;
-	PI.TexCoords = gl_TexCoord[0].xy;
-	gl_FragColor = LensifierMain(PI);
+	PixelInput _PI;
+	_PI.TexCoords = gl_TexCoord[0];
+	gl_FragColor = LensifierMain(_PI);
 }
 )

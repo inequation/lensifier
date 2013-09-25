@@ -1,0 +1,155 @@
+diff --git a/Makefile b/Makefile
+index 0146e8c..46f761d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -316,6 +316,7 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu"))
+   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
+     -pipe -DUSE_ICON
+   CLIENT_CFLAGS += $(SDL_CFLAGS)
++  CLIENT_CFLAGS += -I/home/inequation/projects/lensifier/include
+ 
+   OPTIMIZEVM = -O3 -funroll-loops -fomit-frame-pointer
+   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
+@@ -363,7 +364,7 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu"))
+   LIBS=-ldl -lm
+ 
+   CLIENT_LIBS=$(SDL_LIBS)
+-  RENDERER_LIBS = $(SDL_LIBS) -lGL
++  RENDERER_LIBS = $(SDL_LIBS) -lGL -llensifier -lstdc++ -L/home/inequation/projects/lensifier/build/Debug
+ 
+   ifeq ($(USE_OPENAL),1)
+     ifneq ($(USE_OPENAL_DLOPEN),1)
+diff --git a/code/renderergl2/tr_backend.c b/code/renderergl2/tr_backend.c
+index d7abe6c..2cffc17 100644
+--- a/code/renderergl2/tr_backend.c
++++ b/code/renderergl2/tr_backend.c
+@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ ===========================================================================
+ */
+ #include "tr_local.h"
++#include <liblensifier.h>
+ 
+ backEndData_t	*backEndData;
+ backEndState_t	backEnd;
+@@ -1721,6 +1722,38 @@ const void *RB_PostProcess(const void *data)
+ 		FBO_BlitFromTexture(tr.sunRaysImage, NULL, NULL, tr.screenScratchFbo, dstBox, NULL, NULL, 0);
+ 	}
+ 
++	// LENSIFIER BEGIN ----------------------------------------------
++	
++	// reset current GL state
++	R_BindNullVBO();
++	R_BindNullIBO();
++	GLSL_BindNullProgram();
++	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
++	
++	// bind scene colour and depth textures
++	FBO_Bind(tr.screenScratchFbo);
++	GL_SelectTexture(0);
++	GL_Bind(tr.screenScratchFbo->colorImage[0]);
++	GL_SelectTexture(1);
++	GL_Bind(tr.renderDepthImage);	
++	
++	// setup DOF effect
++	LensifierDOFBeginSetup();
++	extern cvar_t	*lensifier_dof_focalDepth;
++	extern cvar_t	*lensifier_dof_focalLength;
++	extern cvar_t	*lensifier_dof_FStop;
++	LensifierDOFSetFocalDepth(lensifier_dof_focalDepth->value);
++	LensifierDOFSetFocalLength(lensifier_dof_focalLength->value);
++	LensifierDOFSetFStop(lensifier_dof_FStop->value);
++	LensifierDOFSetZNear(MAX(tr.viewParms.zNear, r_znear->value));
++	LensifierDOFSetZFar(tr.viewParms.zFar);
++	LensifierDOFEndSetup();
++	
++	// render the effects
++	LensifierRender();
++	
++	// LENSIFIER END ------------------------------------------------
++
+ 	backEnd.framePostProcessed = qtrue;
+ 
+ 	return (const void *)(cmd + 1);
+diff --git a/code/renderergl2/tr_init.c b/code/renderergl2/tr_init.c
+index d533024..b4b1e93 100644
+--- a/code/renderergl2/tr_init.c
++++ b/code/renderergl2/tr_init.c
+@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ // tr_init.c -- functions that are not called every frame
+ 
+ #include "tr_local.h"
++#include <liblensifier.h>
+ 
+ glconfig_t  glConfig;
+ glRefConfig_t glRefConfig;
+@@ -224,6 +225,10 @@ int		max_polys;
+ cvar_t	*r_maxpolyverts;
+ int		max_polyverts;
+ 
++cvar_t	*lensifier_dof_focalDepth;
++cvar_t	*lensifier_dof_focalLength;
++cvar_t	*lensifier_dof_FStop;
++
+ /*
+ ** InitOpenGL
+ **
+@@ -270,6 +275,10 @@ static void InitOpenGL( void )
+ 
+ 	// set default state
+ 	GL_SetDefaultState();
++	
++	LensifierInit(RA_OpenGL, NULL);
++	LensifierSetup(glConfig.vidWidth, glConfig.vidHeight, 0, 1);
++	LensifierDOFSetEnabled(true);
+ }
+ 
+ /*
+@@ -1303,6 +1312,10 @@ void R_Register( void )
+ 
+ 	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
+ 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);
++	
++	lensifier_dof_focalDepth = ri.Cvar_Get("lensifier_dof_focalDepth", "1.0", CVAR_ARCHIVE);
++	lensifier_dof_focalLength = ri.Cvar_Get("lensifier_dof_focalLength", "50.0", CVAR_ARCHIVE);
++	lensifier_dof_FStop = ri.Cvar_Get("lensifier_dof_FStop", "5", CVAR_ARCHIVE);
+ 
+ 	// make sure all the commands added here are also
+ 	// removed in R_Shutdown
+@@ -1477,6 +1490,8 @@ void RE_Shutdown( qboolean destroyWindow ) {
+ 
+ 	// shut down platform specific OpenGL stuff
+ 	if ( destroyWindow ) {
++		LensifierShutdown();
++		
+ 		GLimp_Shutdown();
+ 
+ 		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
+diff --git a/code/sys/sys_main.c b/code/sys/sys_main.c
+index 40e8a9f..c032162 100644
+--- a/code/sys/sys_main.c
++++ b/code/sys/sys_main.c
+@@ -445,7 +445,7 @@ void *Sys_LoadDll(const char *name, qboolean useSystemLib)
+ 		if(!*topDir)
+ 			topDir = ".";
+ 
+-		Com_Printf("Trying to load \"%s\" from \"%s\"...\n", name, topDir);
++		Com_Printf("Failed (%s).\nTrying to load \"%s\" from \"%s\"...\n", Sys_LibraryError(), name, topDir);
+ 		Com_sprintf(libPath, sizeof(libPath), "%s%c%s", topDir, PATH_SEP, name);
+ 
+ 		if(!(dllhandle = Sys_LoadLibrary(libPath)))
+@@ -457,13 +457,13 @@ void *Sys_LoadDll(const char *name, qboolean useSystemLib)
+ 			
+ 			if(FS_FilenameCompare(topDir, basePath))
+ 			{
+-				Com_Printf("Trying to load \"%s\" from \"%s\"...\n", name, basePath);
++				Com_Printf("Failed (%s).\nTrying to load \"%s\" from \"%s\"...\n", Sys_LibraryError(), name, basePath);
+ 				Com_sprintf(libPath, sizeof(libPath), "%s%c%s", basePath, PATH_SEP, name);
+ 				dllhandle = Sys_LoadLibrary(libPath);
+ 			}
+ 			
+ 			if(!dllhandle)
+-				Com_Printf("Loading \"%s\" failed\n", name);
++				Com_Printf("Loading \"%s\" failed (%s)\n", name, Sys_LibraryError());
+ 		}
+ 	}
+ 	

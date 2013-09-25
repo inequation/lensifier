@@ -16,13 +16,13 @@ extern "C"
 
 typedef unsigned int	LUINT;
 
-enum LensifierRenderAPI
+typedef enum
 {
 	RA_OpenGL,
 	RA_Direct3D9,
 	RA_Direct3D10,
 	RA_Direct3D11,
-};
+} LensifierRenderAPI;
 
 /**
  * Initializes Lensifier for the given API.
@@ -31,7 +31,7 @@ enum LensifierRenderAPI
 bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData);
 
 /** Shuts the current Lensifier instance down. */
-void LensifierShutdown();
+void LensifierShutdown(void);
 
 /**
  * Sets up the global library settings.
@@ -44,14 +44,16 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 	LUINT ColourTextureSlot, LUINT DepthTextureSlot);
 
 void LensifierDOFSetEnabled(bool);
+void LensifierDOFBeginSetup(void);
 void LensifierDOFSetFocalDepth(float);
-void LensifierDOFSetFocalFocalLength(float);
+void LensifierDOFSetFocalLength(float);
 void LensifierDOFSetFStop(float);
 void LensifierDOFSetZNear(float);
 void LensifierDOFSetZFar(float);
+void LensifierDOFEndSetup(void);
 
 /** Renders all the configured effects. */
-void LensifierRender();
+void LensifierRender(void);
 
 #ifdef __cplusplus
 }

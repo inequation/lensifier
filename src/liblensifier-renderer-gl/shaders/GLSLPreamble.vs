@@ -4,13 +4,13 @@ STRINGIFY(
 struct VertexInput
 {
 	vec4 Position;
-	vec4 TextureCoordinates;
+	vec4 TexCoords;
 };
 
 struct VertexOutput
 {
 	vec4 Position;
-	vec4 TextureCoordinates;
+	vec4 TexCoords;
 };
 
 )

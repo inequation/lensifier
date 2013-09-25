@@ -67,6 +67,8 @@ public:
 	/** Releases the given program. */
 	inline void ReleaseProgram(GLuint Program) {LGL(DeleteProgram)(Program);}
 	
+	virtual void DOFBeginSetup();
+	virtual void DOFEndSetup();
 	virtual void DOFSetEnabled(bool);
 	#define OP_PER_PARAM(Type, Name, Default) virtual void DOFSet ## Name(Type);
 	#include "../liblensifier/DOFEffect.h"
@@ -78,11 +80,27 @@ public:
 private:
 	inline void DrawFullScreenQuad()
 	{
-		LGL(VertexPointer)(2, GL_UNSIGNED_BYTE, 0, FSQuadVerts);
+#if 0
+		LGL(VertexPointer)(3, GL_FLOAT, 0, FSQuadVerts);
 		LGL(DrawElements)(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, FSQuadIndices);
+#elif 0
+		LGL(Begin)(GL_QUADS);
+		LGL(Vertex3f)(-1.0f, 1.0f, 0.0f);
+		LGL(Vertex3f)( 1.0f, 1.0f, 0.0f);
+		LGL(Vertex3f)( 1.0f,-1.0f, 0.0f);
+		LGL(Vertex3f)(-1.0f,-1.0f, 0.0f);
+		LGL(End)();
+#else
+		LGL(Begin)(GL_QUADS);
+		LGL(Vertex2f)(-1.0f, 1.0f);
+		LGL(Vertex2f)( 1.0f, 1.0f);
+		LGL(Vertex2f)( 1.0f,-1.0f);
+		LGL(Vertex2f)(-1.0f,-1.0f);
+		LGL(End)();
+#endif
 	}
 	
-	static const GLubyte FSQuadVerts[];
+	static const GLfloat FSQuadVerts[];
 	static const GLubyte FSQuadIndices[];
 	static const char VertexShaderPreamble[];
 	static const size_t VertexShaderPreambleLen;

@@ -2,11 +2,11 @@ STRINGIFY(
 
 void main()
 {
-	VertexInput VI;
-	VI.Position = gl_Vertex;
-	VI.TextureCoordinates = gl_MultiTexCoord0;
-	VertexOutput VO = LensifierMain(VI);
-	gl_Position = VO.Position;
-	gl_TexCoord[0] = VO.TextureCoordinates;
+	VertexInput _VI;
+	_VI.Position = gl_Vertex;
+	_VI.TexCoords = gl_MultiTexCoord0;
+	VertexOutput _VO = LensifierMain(_VI);
+	gl_Position = _VO.Position;
+	gl_TexCoord[0] = _VO.TexCoords;
 }
 )

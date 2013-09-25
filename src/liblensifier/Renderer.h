@@ -20,16 +20,27 @@ public:
 	virtual ~Renderer() {}
 	
 	/** Notification issued by the library that the configuration has changed. */
-	virtual void Setup(LUINT ScreenWidth, LUINT ScreenHeight,
-		LUINT ColourTextureSlot, LUINT DepthTextureSlot) = 0;
+	virtual void Setup(LUINT InScreenWidth, LUINT InScreenHeight,
+		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
+	{
+		ScreenWidth = InScreenWidth;
+		ScreenHeight = InScreenHeight;
+		ColourTextureSlot = InColourTextureSlot;
+		DepthTextureSlot = InDepthTextureSlot;
+	}
 	
 	/** Renders the configured effects. */
 	virtual void Render() = 0;
 	
+	virtual void DOFBeginSetup() = 0;
+	virtual void DOFEndSetup() = 0;
 	virtual void DOFSetEnabled(bool) = 0;
 	#define OP_PER_PARAM(Type, Name, Default) virtual void DOFSet ## Name(Type) = 0;
 	#include "DOFEffect.h"
 	#undef OP_PER_PARAM
+	
+protected:
+	LUINT ScreenWidth, ScreenHeight, ColourTextureSlot, DepthTextureSlot;
 };
 
 extern Renderer		*GRenderer;
@@ -52,7 +63,7 @@ struct CachedShaderParam
 		void Register(typename RendererClass::ProgramHandle Program,
 			const char *Name)
 		{
-			((RendererClass *)GRenderer)->GetShaderParameter(Program, Name);
+			Handle = ((RendererClass *)GRenderer)->GetShaderParameter(Program, Name);
 		}
 		
 		void Set(const T& Val)
