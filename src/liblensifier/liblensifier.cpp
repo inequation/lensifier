@@ -19,13 +19,15 @@
 
 using namespace Lensifier;
 
-Renderer		*Lensifier::GRenderer = nullptr;
+Renderer					*Lensifier::GRenderer = nullptr;
+LensifierRequestCallback	Lensifier::GCallback = nullptr;
 
 extern "C"
 {
 
 /** Initializes Lensifier for the given API. */
-bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData)
+bool LensifierInit(LensifierRenderAPI API, LensifierRequestCallback Callback,
+	void *RendererSpecificData)
 {
 	if (GRenderer)
 		return false;
@@ -57,7 +59,7 @@ bool LensifierInit(LensifierRenderAPI API, void *RendererSpecificData)
 	if (!GRenderer)
 		return false;
 	
-	// ???
+	GCallback = Callback;
 	
 	return true;
 }
@@ -70,6 +72,8 @@ void LensifierShutdown(void)
 		delete GRenderer;
 		GRenderer = nullptr;
 	}
+	
+	GCallback = nullptr;
 }
 
 /**
@@ -90,7 +94,7 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 		ColourTextureSlot, DepthTextureSlot);
 }
 
-#define DECLARE_RENDERER_BINDING_FORWARDER(Effect)							\
+#define DECLARE_RENDERER_SINGLE_PASS_BINDING_FORWARDER(Effect)				\
 	void Lensifier ## Effect ## BeginSetup(void)							\
 	{																		\
 		if (!GRenderer)														\
@@ -103,8 +107,19 @@ void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
 			return;															\
 		GRenderer->Effect ## EndSetup();									\
 	}
-
-DECLARE_RENDERER_BINDING_FORWARDER(DOF)
+#define DECLARE_RENDERER_MULTI_PASS_BINDING_FORWARDER(Effect)				\
+	void Lensifier ## Effect ## BeginSetup(LUINT Pass)						\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->Effect ## BeginSetup(Pass);								\
+	}																		\
+	void Lensifier ## Effect ## EndSetup(LUINT Pass)						\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->Effect ## EndSetup(Pass);								\
+	}
 
 #define DECLARE_RENDERER_PROPERTY_FORWARDER(Effect, Type, Parameter)		\
 	void Lensifier ## Effect ## Set ## Parameter(Type New ## Parameter)		\
@@ -114,12 +129,53 @@ DECLARE_RENDERER_BINDING_FORWARDER(DOF)
 		GRenderer->Effect ## Set ## Parameter(New ## Parameter);			\
 	}
 
+DECLARE_RENDERER_SINGLE_PASS_BINDING_FORWARDER(DOF)
 DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, bool, Enabled)
-DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FocalDepth)
-DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FocalLength)
-DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, FStop)
-DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, ZNear)
-DECLARE_RENDERER_PROPERTY_FORWARDER(DOF, float, ZFar)
+#define OP_PER_PARAM(Type, Parameter, Default)								\
+	void LensifierDOFSet ## Parameter(Type New ## Parameter)				\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->DOFSet ## Parameter(New ## Parameter);					\
+	}
+#include "DOFEffect.h"
+#undef OP_PER_PARAM
+
+DECLARE_RENDERER_MULTI_PASS_BINDING_FORWARDER(DirtBloom)
+DECLARE_RENDERER_PROPERTY_FORWARDER(DirtBloom, bool, Enabled)
+#define OP_PER_PARAM(Pass, Type, Parameter, Default)						\
+	void LensifierDirtBloomSet ## Parameter(Type New ## Parameter)			\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->DirtBloomSet ## Parameter(New ## Parameter);				\
+	}
+#include "DirtBloomEffect.h"
+#undef OP_PER_PARAM
+
+DECLARE_RENDERER_SINGLE_PASS_BINDING_FORWARDER(TexturedDOF)
+DECLARE_RENDERER_PROPERTY_FORWARDER(TexturedDOF, bool, Enabled)
+#define OP_PER_PARAM(Type, Parameter, Default)								\
+	void LensifierTexturedDOFSet ## Parameter(Type New ## Parameter)		\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->TexturedDOFSet ## Parameter(New ## Parameter);			\
+	}
+#include "TexturedDOFEffect.h"
+#undef OP_PER_PARAM
+
+DECLARE_RENDERER_SINGLE_PASS_BINDING_FORWARDER(WaterDroplets)
+DECLARE_RENDERER_PROPERTY_FORWARDER(WaterDroplets, bool, Enabled)
+#define OP_PER_PARAM(Type, Parameter, Default)								\
+	void LensifierWaterDropletsSet ## Parameter(Type New ## Parameter)		\
+	{																		\
+		if (!GRenderer)														\
+			return;															\
+		GRenderer->WaterDropletsSet ## Parameter(New ## Parameter);			\
+	}
+#include "WaterDropletsEffect.h"
+#undef OP_PER_PARAM
 
 /** Renders all the configured effects. */
 void LensifierRender(void)

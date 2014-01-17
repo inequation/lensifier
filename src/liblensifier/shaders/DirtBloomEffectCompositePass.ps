@@ -1,0 +1,36 @@
+STRINGIFY(
+uniform sampler2D FullRes;
+uniform sampler2D HalfRes;
+uniform sampler2D DirtTexture;
+uniform float BrightnessGain;
+
+const float BleedFactor = 0.5;
+
+vec4 Gain(vec4 Colour)
+{
+	Colour *= BrightnessGain;
+	
+	// bleed excessive channel values into the other channels
+	vec4 RGBBleed = BleedFactor * max(vec4(0.0), Colour - vec4(1.0));
+	vec4 Bleed = vec4(
+		RGBBleed.g + RGBBleed.b,
+		RGBBleed.r + RGBBleed.b,
+		RGBBleed.r + RGBBleed.g,
+		0.0
+	);
+	
+	return Saturate(Colour + Bleed);
+}
+
+vec4 LensifierMain(PixelInput Input)
+{
+	vec4 Scene = Sample2D(FullRes, Input.TexCoords.xy);
+	vec4 Dirt = Gain(Sample2D(HalfRes, Input.TexCoords.xy))
+		* Sample2D(DirtTexture, Input.TexCoords.xy);
+	float DirtAlpha = Dirt.a;
+	Dirt.a = 0.0;
+	//return vec4(Blend(Scene, Dirt, DirtAlpha));
+	return Scene + Dirt;
+}
+
+)

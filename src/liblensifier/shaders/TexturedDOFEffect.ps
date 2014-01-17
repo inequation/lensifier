@@ -1,0 +1,12 @@
+STRINGIFY(
+uniform sampler2D BokehTexture;
+
+vec4 LensifierMain(PixelInput Input)
+{
+	// if the particle is small enough, blend between actual bokeh and opaque
+	const float MinSizeToGetBokeh = 0.0001;
+	float Bokeh = Sample2D(BokehTexture, Input.TexCoords.xy).x;
+	float Alpha = mix(1.0, Bokeh, min(1.0, Input.TexCoords.z / MinSizeToGetBokeh));
+	return vec4(Input.VertexColour.rgb, Alpha);
+}
+)

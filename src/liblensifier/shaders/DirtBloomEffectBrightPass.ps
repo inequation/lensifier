@@ -1,0 +1,22 @@
+STRINGIFY(
+uniform sampler2D SceneColour;
+uniform float BrightnessThreshold;
+
+vec4 LensifierMain(PixelInput Input)
+{
+	vec4 Scene = Sample2D(SceneColour, Input.TexCoords.xy);
+	const vec4 LumaWeights = vec4(0.3, 0.5, 0.2, 0.0);
+	float Luma = dot(Scene, LumaWeights);
+	
+	if (Luma >= BrightnessThreshold)
+		return Scene;
+	else if (Luma >= BrightnessThreshold * 0.5)
+	{
+		float Fade = Luma / BrightnessThreshold;
+		Fade *= Fade * Fade * Fade * Fade;
+		return Scene * Fade;
+	}
+	return vec4(0.0, 0.0, 0.0, 1.0);
+}
+
+)

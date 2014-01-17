@@ -1,0 +1,40 @@
+STRINGIFY(
+uniform sampler2D SceneColour;
+//uniform sampler2D SceneDepth;
+//uniform vec2 ScreenSize;
+uniform vec2 TexelSize;
+
+uniform bool Horizontal;
+
+//const float Kernel[8] = float[8](0.45, 0.4, 0.34, 0.26, 0.15, 0.08, 0.024, 0.0033);
+//const float Kernel[5] = float[5](0.30, 0.23, 0.097, 0.024, 0.0033);
+//const float Kernel[4] = float[4](0.40, 0.24, 0.054, 0.0044);
+//const float Kernel[3] = float[3](0.60, 0.19, 0.0066);
+
+vec4 LensifierMain(PixelInput Input)
+{
+	vec2 Direction = TexelSize * (Horizontal ? vec2(1.0, 0.0) : vec2(0.0, 1.0));
+	
+	// the base pixel needs to have a very low weight, otherwise it biases the
+	// result way to much; and without it we get artifacts
+	float Kernel = 0.12 * float(GAUSS_SIZE);
+	vec4 Result = Sample2D(SceneColour, Input.TexCoords.xy) * Kernel;//vec4(0.0);
+	float Total = Kernel;//0.0;
+	int i;
+	int j;
+	for (i = 0; i < 2; i++)
+	{
+		for (j = 1; j < GAUSS_SIZE; j++)
+		{
+			Kernel = smoothstep(0.0033, 0.0033 + float(GAUSS_SIZE), 0.0033 + float(GAUSS_SIZE - j));
+			vec2 Offset = Direction * j;
+			Result += Sample2D(SceneColour,
+				Input.TexCoords.xy + Offset) * Kernel/*[j]*/;
+			Total += Kernel/*[j]*/;
+		}
+		
+		Direction = -Direction;
+	}
+	return Result / Total;
+}
+)

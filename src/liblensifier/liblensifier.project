@@ -9,10 +9,15 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="liblensifier.cpp"/>
-    <File Name="DOFEffect.cpp"/>
     <VirtualDirectory Name="shaders">
       <File Name="shaders/GenericEffect.vs"/>
       <File Name="shaders/DOFEffect.ps"/>
+      <File Name="shaders/WaterDropletsEffect.ps"/>
+      <File Name="shaders/DirtBloomEffectBrightPass.ps"/>
+      <File Name="shaders/DirtBloomEffectCompositePass.ps"/>
+      <File Name="shaders/SingleDirGaussianBlur.ps"/>
+      <File Name="shaders/TexturedDOFEffect.vs"/>
+      <File Name="shaders/TexturedDOFEffect.ps"/>
     </VirtualDirectory>
     <File Name="Effect.cpp"/>
     <VirtualDirectory Name="renderer_gl">
@@ -21,9 +26,10 @@
         <File Name="../liblensifier-renderer-gl/shaders/GLSLPostamble.vs"/>
         <File Name="../liblensifier-renderer-gl/shaders/GLSLPreamble.ps"/>
         <File Name="../liblensifier-renderer-gl/shaders/GLSLPreamble.vs"/>
+        <File Name="../liblensifier-renderer-gl/shaders/GLSLPreamble.cs"/>
       </VirtualDirectory>
-      <File Name="../liblensifier-renderer-gl/GLRenderer.cpp"/>
       <File Name="../liblensifier-renderer-gl/GLRenderer.h"/>
+      <File Name="../liblensifier-renderer-gl/GLRenderer.cpp"/>
     </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
@@ -32,6 +38,11 @@
     <File Name="Effect.h"/>
     <File Name="DOFEffect.h"/>
     <File Name="Utils.h"/>
+    <File Name="DirtBloomEffect.h"/>
+    <File Name="SinglePassEffect.h"/>
+    <File Name="MultiPassEffect.h"/>
+    <File Name="TexturedDOFEffect.h"/>
+    <File Name="WaterDropletsEffect.h"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>
