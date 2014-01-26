@@ -1,0 +1,8 @@
+# MSVS junk
+**/*.sdf
+**/*.opensdf
+**/*.suo
+**/*.user
+**/ipch/
+**/Debug/
+**/Release/

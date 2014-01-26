@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liblensifier", "liblensifier\liblensifier.vcxproj", "{F3E81BC0-DCD1-4C5D-8537-903E0FF9E8D1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer_gl", "renderer_gl\renderer_gl.vcxproj", "{63302DF5-99C3-44B5-A285-C18DCFA44A78}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer_d3d", "renderer_d3d\renderer_d3d.vcxproj", "{DC691B47-20A1-496B-A9A0-CB062B7CD11A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F3E81BC0-DCD1-4C5D-8537-903E0FF9E8D1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F3E81BC0-DCD1-4C5D-8537-903E0FF9E8D1}.Debug|Win32.Build.0 = Debug|Win32
+		{F3E81BC0-DCD1-4C5D-8537-903E0FF9E8D1}.Release|Win32.ActiveCfg = Release|Win32
+		{F3E81BC0-DCD1-4C5D-8537-903E0FF9E8D1}.Release|Win32.Build.0 = Release|Win32
+		{63302DF5-99C3-44B5-A285-C18DCFA44A78}.Debug|Win32.ActiveCfg = Debug|Win32
+		{63302DF5-99C3-44B5-A285-C18DCFA44A78}.Debug|Win32.Build.0 = Debug|Win32
+		{63302DF5-99C3-44B5-A285-C18DCFA44A78}.Release|Win32.ActiveCfg = Release|Win32
+		{63302DF5-99C3-44B5-A285-C18DCFA44A78}.Release|Win32.Build.0 = Release|Win32
+		{DC691B47-20A1-496B-A9A0-CB062B7CD11A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DC691B47-20A1-496B-A9A0-CB062B7CD11A}.Debug|Win32.Build.0 = Debug|Win32
+		{DC691B47-20A1-496B-A9A0-CB062B7CD11A}.Release|Win32.ActiveCfg = Release|Win32
+		{DC691B47-20A1-496B-A9A0-CB062B7CD11A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
