@@ -65,6 +65,13 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Renderer.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\liblensifier-renderer-d3d\shaders\HLSLPostamble.ps" />
+    <None Include="..\..\..\src\liblensifier-renderer-d3d\shaders\HLSLPostamble.vs" />
+    <None Include="..\..\..\src\liblensifier-renderer-d3d\shaders\HLSLPreamble.cs" />
+    <None Include="..\..\..\src\liblensifier-renderer-d3d\shaders\HLSLPreamble.ps" />
+    <None Include="..\..\..\src\liblensifier-renderer-d3d\shaders\HLSLPreamble.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
