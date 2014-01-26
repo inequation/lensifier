@@ -6,15 +6,18 @@
 #include "../../include/liblensifier.h"
 #include "Renderer.h"
 
-#define LENSIFIER_USE_RENDERER_OPENGL	1
-#define LENSIFIER_USE_RENDERER_DIRECT3D	0
+#define LENSIFIER_USE_RENDERER_OPENGL		1
+#if defined(_WIN32) || defined(WIN32)
+	#define LENSIFIER_USE_RENDERER_DIRECT3D	1
+#else
+	#define LENSIFIER_USE_RENDERER_DIRECT3D	0
+#endif
 
 #if LENSIFIER_USE_RENDERER_OPENGL
 #include "../liblensifier-renderer-gl/GLRenderer.h"
 #endif
 #if LENSIFIER_USE_RENDERER_DIRECT3D
-#error Unimplemented!
-#include "../liblensifier-renderer-d3d/D3DRenderer.h"
+#include "../liblensifier-renderer-d3d/D3D10Renderer.h"
 #endif
 
 using namespace Lensifier;
@@ -42,15 +45,17 @@ bool LensifierInit(LensifierRenderAPI API, LensifierRequestCallback Callback,
 			GRenderer = nullptr;
 #endif
 			break;
-		case RA_Direct3D9:
 		case RA_Direct3D10:
-		case RA_Direct3D11:
 #if LENSIFIER_USE_RENDERER_DIRECT3D
 			if (!GRenderer)
-				GRenderer = D3DRenderer::CreateInstance(API, RendererSpecificData);
+				GRenderer = new D3D10Renderer(RendererSpecificData);
 #else
 			GRenderer = nullptr;
 #endif
+		case RA_Direct3D9:
+		case RA_Direct3D11:
+			// FIXME: no 9 and 11 support yet
+			GRenderer = nullptr;
 			break;
 		default:
 			GRenderer = nullptr;

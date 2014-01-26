@@ -9,6 +9,18 @@
 #include "../liblensifier/Renderer.h"
 #include "../liblensifier/Utils.h"
 
+#if defined(_WIN32) || defined(WIN32)
+	#ifndef WIN32_LEAN_AND_MEAN
+		#define WIN32_LEAN_AND_MEAN 1
+		#define __UNDEF_WIN32_LEAN_AND_MEAN
+	#endif
+	#include <Windows.h>
+	#ifdef __UNDEF_WIN32_LEAN_AND_MEAN
+		#undef WIN32_LEAN_AND_MEAN
+		#undef __UNDEF_WIN32_LEAN_AND_MEAN
+	#endif
+#endif
+
 #ifndef LGL
 	// OpenGL function prefix
 	#define LGL(f)	gl##f
