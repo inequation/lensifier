@@ -30,6 +30,7 @@ const GLubyte GLRenderer::FSQuadIndices[] = {0, 1, 2, 3};
 const char GLRenderer::VertexShaderPreamble[] =
 	"\n#version 120\n"
 	"\n#define LENSIFIER_GLSL 1\n"
+	"\n#define LENSIFIER_HLSL 0\n"
 	#include "shaders/GLSLPreamble.cs"
 	#include "shaders/GLSLPreamble.vs"
 ;
@@ -43,6 +44,7 @@ const size_t GLRenderer::VertexShaderPostambleLen = strlen(VertexShaderPostamble
 const char GLRenderer::PixelShaderPreamble[] =
 	"\n#version 120\n"
 	"\n#define LENSIFIER_GLSL 1\n"
+	"\n#define LENSIFIER_HLSL 0\n"
 	#include "shaders/GLSLPreamble.cs"
 	#include "shaders/GLSLPreamble.ps"
 ;
