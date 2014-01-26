@@ -53,6 +53,9 @@
     <ClInclude Include="..\..\..\src\liblensifier\WaterDropletsEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\liblensifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\liblensifier\shaders\DirtBloomEffectBrightPass.ps">

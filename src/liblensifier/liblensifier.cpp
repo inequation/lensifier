@@ -6,11 +6,16 @@
 #include "../../include/liblensifier.h"
 #include "Renderer.h"
 
-#define LENSIFIER_USE_RENDERER_OPENGL		1
-#if defined(_WIN32) || defined(WIN32)
-	#define LENSIFIER_USE_RENDERER_DIRECT3D	1
-#else
-	#define LENSIFIER_USE_RENDERER_DIRECT3D	0
+#ifndef LENSIFIER_USE_RENDERER_OPENGL
+	#define LENSIFIER_USE_RENDERER_OPENGL		1
+#endif
+
+#ifndef LENSIFIER_USE_RENDERER_DIRECT3D
+	#if defined(_WIN32) || defined(WIN32)
+		#define LENSIFIER_USE_RENDERER_DIRECT3D	1
+	#else
+		#define LENSIFIER_USE_RENDERER_DIRECT3D	0
+	#endif
 #endif
 
 #if LENSIFIER_USE_RENDERER_OPENGL

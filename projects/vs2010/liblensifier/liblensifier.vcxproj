@@ -41,6 +41,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>LENSIFIER_USE_RENDERER_OPENGL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -52,6 +53,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>LENSIFIER_USE_RENDERER_OPENGL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -64,6 +66,7 @@
     <ClCompile Include="..\..\..\src\liblensifier\liblensifier.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\liblensifier.h" />
     <ClInclude Include="..\..\..\src\liblensifier\DirtBloomEffect.h" />
     <ClInclude Include="..\..\..\src\liblensifier\DOFEffect.h" />
     <ClInclude Include="..\..\..\src\liblensifier\Effect.h" />
