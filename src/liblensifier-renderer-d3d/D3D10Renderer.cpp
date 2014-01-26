@@ -14,6 +14,7 @@
 	#include <cstdio>
 #endif
 
+#include <D3DCompiler.h>
 
 namespace Lensifier
 {
@@ -29,7 +30,6 @@ const BYTE D3D10Renderer::FSQuadIndices[] = {0, 1, 2, 3};
 
 #define STRINGIFY(x)	#x
 const char D3D10Renderer::VertexShaderPreamble[] =
-	"\n#define LENSIFIER_HLSL 1\n"
 	#include "shaders/HLSLPreamble.cs"
 	#include "shaders/HLSLPreamble.vs"
 ;
@@ -41,8 +41,6 @@ const char D3D10Renderer::VertexShaderPostamble[] =
 const size_t D3D10Renderer::VertexShaderPostambleLen = strlen(VertexShaderPostamble);
 
 const char D3D10Renderer::PixelShaderPreamble[] =
-	"\n#version 120\n"
-	"\n#define LENSIFIER_HLSL 1\n"
 	#include "shaders/HLSLPreamble.cs"
 	#include "shaders/HLSLPreamble.ps"
 ;
@@ -141,28 +139,33 @@ void D3D10Renderer::WaterDropletsSet ## Name(Type Value) {if (WaterDroplets) Wat
 #undef OP_PER_PARAM
 
 D3D10Renderer::D3D10Renderer(void *InDevice)
+	: Device((ID3D10Device *)InDevice)
+	, GenericVS(NULL)
+	, GaussianBlurSceneColour(NULL)
+	, GaussianBlurTexelSize(Vector2())
+	, GaussianBlurHorizontal(false)
 {
-	/*GaussianBlur = CompileProgram(EffectGenericVertexShader,
-		SingleDirGaussianBlurPixelShader);*/
+	GaussianBlur = CompileProgram(EffectGenericVertexShader,
+		SingleDirGaussianBlurPixelShader);
 	// HACK!!! this is so that GRenderer is valid while Register() is called
 	Renderer *PrevRenderer = GRenderer;
 	GRenderer = this;
-	/*GaussianBlurSceneColour.Register(GaussianBlur, "SceneColour");
+	GaussianBlurSceneColour.Register(GaussianBlur, "SceneColour");
 	GaussianBlurTexelSize.Register(GaussianBlur, "TexelSize");
-	GaussianBlurHorizontal.Register(GaussianBlur, "Horizontal");*/
+	GaussianBlurHorizontal.Register(GaussianBlur, "Horizontal");
 	GRenderer = PrevRenderer;
 }
 
 D3D10Renderer::~D3D10Renderer()
 {
-	//ReleaseProgram(GaussianBlur);
+	ReleaseProgram(GaussianBlur);
+	GenericVS->Release();
 }
 
 /** Notification issued by the library that the configuration has changed. */
 void D3D10Renderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
 {
-#if 0
 	if (DOF)
 	{
 		DOF->SceneColour.Set(InColourTextureSlot);
@@ -196,9 +199,110 @@ void D3D10Renderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 		WaterDroplets->SceneColour.Set(InColourTextureSlot);
 		WaterDroplets->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
 	}
-#endif
 
 	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTextureSlot, InDepthTextureSlot);
+}
+
+static inline ID3D10Blob *CompileShader(const char *Source, const char *Profile)
+{
+	D3D10_SHADER_MACRO Macros[] = {
+		{"LENSIFIER_GLSL",	"0"},
+		{"LENSIFIER_HLSL",	"40"},	//	Shader Model 4.0
+		{NULL,				NULL}
+	};
+	ID3D10Blob *Blob;
+#ifndef NDEBUG
+	ID3D10Blob *Errors;
+#endif
+
+	static const UINT Flags = D3D10_SHADER_OPTIMIZATION_LEVEL2
+#ifndef NDEBUG
+		| D3D10_SHADER_DEBUG | D3D10_SHADER_WARNINGS_ARE_ERRORS
+#endif
+		;
+
+	HRESULT Result;
+	if (Result = D3DCompile(Source, strlen(Source), NULL, Macros, NULL, "main", Profile, Flags, 0, &Blob,
+#ifndef NDEBUG
+		&Errors
+#else
+		NULL
+#endif
+		) != S_OK)
+	{
+#ifndef NDEBUG
+		if (Errors)
+			printf("%s shader compilation failed (0x%x):\n%s\n", Profile[0] == 'v' ? "Vertex" : "Pixel", Result, (char *)Errors->GetBufferPointer());
+		else
+			printf("%s shader compilation failed (0x%x) with no errors!\n", Profile[0] == 'v' ? "Vertex" : "Pixel", Result);
+#endif
+		return NULL;
+	}
+	return Blob;
+}
+
+D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexShaderSource, const char *PixelShaderSource)
+{
+	ID3D10VertexShader *VS = NULL;
+	ID3D10PixelShader *PS = NULL;
+	HRESULT Result;
+
+	// HACK: prevent recompiling the generic effect over and over again
+	extern const char EffectGenericVertexShader[];
+	if (VertexShaderSource == EffectGenericVertexShader && GenericVS)
+		VS = GenericVS;
+	else
+	{
+		ID3D10Blob *VSBlob = CompileShader(VertexShaderSource, "vs_4_0");
+		if (!VSBlob)
+		{
+			if (VSBlob)
+				VSBlob->Release();
+			return NULL;
+		}
+
+		HRESULT Result = Device->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &VS);
+		if (Result != S_OK || !VS)
+		{
+#ifndef NDEBUG
+			printf("Failed to create VS from blob (0x%x)!\n", Result);
+#endif
+			VSBlob->Release();
+			if (VS)
+				VS->Release();
+		}
+
+		// cache 
+		if (VertexShaderSource == EffectGenericVertexShader)
+		{
+			GenericVS = VS;
+			GenericVS->AddRef();
+		}
+	}
+
+	ID3D10Blob *PSBlob;
+	PSBlob = CompileShader(PixelShaderSource, "ps_4_0");
+	if (!PSBlob)
+	{
+		VS->Release();
+		if (PSBlob)
+			PSBlob->Release();
+		return NULL;
+	}
+
+	Result = Device->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), &PS);
+	if (Result != S_OK || !PS)
+	{
+#ifndef NDEBUG
+		printf("Failed to create PS from blob (0x%x)!\n", Result);
+#endif
+		VS->Release();
+		PSBlob->Release();
+		if (PS)
+			PS->Release();
+	}
+
+	return new D3D10Program(VS, PS);
 }
 
 /** Renders the configured effects. */

@@ -31,13 +31,15 @@ public:
 	{
 		ID3D10VertexShader	*VS;
 		ID3D10PixelShader	*PS;
+
+		D3D10Program(ID3D10VertexShader *InVS, ID3D10PixelShader *InPS) : VS(InVS), PS(InPS) {}
 	};
 
 	// these definitions are required by the templated Effect class
 	typedef D3D10Program	*ProgramHandle;
 	typedef size_t			ShaderParameterHandle;
-	typedef int				IndexBufferHandle;
-	typedef int				VertexBufferHandle;
+	typedef ID3D10Buffer	*IndexBufferHandle;
+	typedef ID3D10Buffer	*VertexBufferHandle;
 	
 	D3D10Renderer(void *InDevice);
 	virtual ~D3D10Renderer();
@@ -54,15 +56,17 @@ public:
 	{return -1;}
 	
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const bool Value)
-	{}	
+	{}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const LUINT Value)
-	{}	
+	{}
+	inline void SetShaderParameterValue(ShaderParameterHandle Param, const ID3D10Texture2D *Value)
+	{}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const float Value)
-	{}	
+	{}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector2& Value)
-	{}	
+	{}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector3& Value)
-	{}	
+	{}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector4& Value)
 	{}
 	
@@ -70,9 +74,21 @@ public:
 	void ReleaseShaderParameter(ShaderParameterHandle Param) {}
 	
 	/** Releases the given program. */
-	inline void ReleaseProgram(ProgramHandle Param)
+	inline void ReleaseProgram(D3D10Program *Program)
 	{
-		// TODO
+		Program->VS->Release();
+		Program->PS->Release();
+		delete Program;
+	}
+
+	inline ID3D10Buffer	*UploadIndicesToBuffer(void *Data, size_t Count, size_t ElementSize)
+	{
+		return NULL;
+	}
+	
+	inline ID3D10Buffer	*UploadVerticesToBuffer(void *Data, size_t Count, size_t ElementSize)
+	{
+		return NULL;
 	}
 
 	/** Notification issued by the library that the configuration has changed. */
@@ -111,7 +127,8 @@ public:
 	virtual void Render();
 
 private:
-	ID3D10Device	*Device;
+	ID3D10Device		*Device;
+	ID3D10VertexShader	*GenericVS;
 
 	inline void DrawFullScreenQuad()
 	{
@@ -128,6 +145,11 @@ private:
 	static const size_t PixelShaderPreambleLen;
 	static const char PixelShaderPostamble[];
 	static const size_t PixelShaderPostambleLen;
+
+	D3D10Program *GaussianBlur;
+	CachedShaderParam<D3D10Renderer, ID3D10Texture2D *> GaussianBlurSceneColour;
+	CachedShaderParam<D3D10Renderer, Vector2> GaussianBlurTexelSize;
+	CachedShaderParam<D3D10Renderer, bool> GaussianBlurHorizontal;
 };
 
 }
