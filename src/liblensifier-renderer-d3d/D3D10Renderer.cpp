@@ -31,6 +31,7 @@ const BYTE D3D10Renderer::FSQuadIndices[] = {0, 1, 2, 3};
 #define STRINGIFY(x)	#x
 const char D3D10Renderer::VertexShaderPreamble[] =
 	#include "shaders/HLSLPreamble.cs"
+	"\n"
 	#include "shaders/HLSLPreamble.vs"
 ;
 const size_t D3D10Renderer::VertexShaderPreambleLen = strlen(VertexShaderPreamble);
@@ -42,6 +43,7 @@ const size_t D3D10Renderer::VertexShaderPostambleLen = strlen(VertexShaderPostam
 
 const char D3D10Renderer::PixelShaderPreamble[] =
 	#include "shaders/HLSLPreamble.cs"
+	"\n"
 	#include "shaders/HLSLPreamble.ps"
 ;
 const size_t D3D10Renderer::PixelShaderPreambleLen = strlen(PixelShaderPreamble);
@@ -203,11 +205,20 @@ void D3D10Renderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTextureSlot, InDepthTextureSlot);
 }
 
-static inline ID3D10Blob *CompileShader(const char *Source, const char *Profile)
+ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile)
 {
-	D3D10_SHADER_MACRO Macros[] = {
+	static const D3D10_SHADER_MACRO Macros[] = {
 		{"LENSIFIER_GLSL",	"0"},
 		{"LENSIFIER_HLSL",	"40"},	//	Shader Model 4.0
+
+		// type aliases
+		{"vec2",			"float2"},
+		{"vec3",			"float3"},
+		{"vec4",			"float4"},
+		{"mat2",			"float2x2"},
+		{"mat3",			"float3x3"},
+		{"mat4",			"float4x4"},
+
 		{NULL,				NULL}
 	};
 	ID3D10Blob *Blob;
@@ -221,20 +232,32 @@ static inline ID3D10Blob *CompileShader(const char *Source, const char *Profile)
 #endif
 		;
 
-	HRESULT Result;
-	if (Result = D3DCompile(Source, strlen(Source), NULL, Macros, NULL, "main", Profile, Flags, 0, &Blob,
+	bool IsVertexShader = Profile[0] == 'v';
+
+	// concatenate sources
+	const size_t CompleteLength = (IsVertexShader ? VertexShaderPreambleLen : PixelShaderPreambleLen)
+		+ (IsVertexShader ? VertexShaderPostambleLen : PixelShaderPostambleLen)
+		+ strlen(Source) + 3;
+	char *CompleteSource = new char[CompleteLength];
+	_snprintf_s(CompleteSource, CompleteLength + 2, _TRUNCATE, "%s\n%s\n%s",
+		IsVertexShader ? VertexShaderPreamble : PixelShaderPreamble,
+		Source,
+		IsVertexShader ? VertexShaderPostamble : PixelShaderPostamble);
+
+	HRESULT Result = D3DCompile(CompleteSource, strlen(CompleteSource), NULL, Macros, NULL, "main", Profile, Flags, 0, &Blob,
 #ifndef NDEBUG
 		&Errors
 #else
 		NULL
 #endif
-		) != S_OK)
+	);
+	if (FAILED(Result))
 	{
 #ifndef NDEBUG
 		if (Errors)
-			printf("%s shader compilation failed (0x%x):\n%s\n", Profile[0] == 'v' ? "Vertex" : "Pixel", Result, (char *)Errors->GetBufferPointer());
+			printf("%s shader compilation failed (0x%x):\n%s\n", IsVertexShader ? "Vertex" : "Pixel", Result, (char *)Errors->GetBufferPointer());
 		else
-			printf("%s shader compilation failed (0x%x) with no errors!\n", Profile[0] == 'v' ? "Vertex" : "Pixel", Result);
+			printf("%s shader compilation failed (0x%x) with no errors!\n", IsVertexShader ? "Vertex" : "Pixel", Result);
 #endif
 		return NULL;
 	}
@@ -262,7 +285,7 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 		}
 
 		HRESULT Result = Device->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &VS);
-		if (Result != S_OK || !VS)
+		if (FAILED(Result) || !VS)
 		{
 #ifndef NDEBUG
 			printf("Failed to create VS from blob (0x%x)!\n", Result);
@@ -291,7 +314,7 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 	}
 
 	Result = Device->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), &PS);
-	if (Result != S_OK || !PS)
+	if (FAILED(Result) || !PS)
 	{
 #ifndef NDEBUG
 		printf("Failed to create PS from blob (0x%x)!\n", Result);

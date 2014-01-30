@@ -1,6 +1,6 @@
 STRINGIFY(
-uniform sampler2D SceneColour;
-uniform sampler2D SceneDepth;
+uniform Sampler2D SceneColour;
+uniform Sampler2D SceneDepth;
 uniform vec2 TexelSize;
 uniform float FocusDistance;
 uniform float FocusBreadth;

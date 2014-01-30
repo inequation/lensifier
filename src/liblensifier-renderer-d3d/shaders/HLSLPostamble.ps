@@ -1,9 +1,12 @@
 STRINGIFY(
-void main()
+
+float4 main(in PixelInput _PI)	:
+\n#if LENSIFIER_HLSL >= 40\n
+	SV_Target
+\n#else\n
+	COLOR
+\n#endif\n
 {
-	PixelInput _PI;
-	_PI.TexCoords = gl_TexCoord[0];
-	_PI.VertexColour = gl_Color;
-	gl_FragColor = LensifierMain(_PI);
+	return LensifierMain(_PI);
 }
 )

@@ -127,6 +127,8 @@ public:
 	virtual void Render();
 
 private:
+	ID3D10Blob *CompileShader(const char *Source, const char *Profile);
+
 	ID3D10Device		*Device;
 	ID3D10VertexShader	*GenericVS;
 
