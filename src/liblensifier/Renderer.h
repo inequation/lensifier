@@ -34,12 +34,12 @@ public:
 	
 	/** Notification issued by the library that the configuration has changed. */
 	virtual void Setup(LUINT InScreenWidth, LUINT InScreenHeight,
-		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
+		void *InColourTexture, void *InDepthTexture)
 	{
 		ScreenWidth = InScreenWidth;
 		ScreenHeight = InScreenHeight;
-		ColourTextureSlot = InColourTextureSlot;
-		DepthTextureSlot = InDepthTextureSlot;
+		ColourTexture = InColourTexture;
+		DepthTexture = InDepthTexture;
 	}
 	
 	/** Renders the configured effects. */
@@ -96,7 +96,8 @@ public:
 	}
 	
 protected:
-	LUINT ScreenWidth, ScreenHeight, ColourTextureSlot, DepthTextureSlot;
+	LUINT ScreenWidth, ScreenHeight;
+	void *ColourTexture, *DepthTexture;
 };
 
 template <class RendererClass, typename T>
@@ -104,7 +105,7 @@ struct CachedShaderParam
 {
 	public:
 		CachedShaderParam(const T& InitVal)
-			: Handle(-1)
+			: Handle((RendererClass::ShaderParameterHandle)-1)
 			, CachedValue(InitVal)
 		{}
 		

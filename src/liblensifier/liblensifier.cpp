@@ -57,6 +57,7 @@ bool LensifierInit(LensifierRenderAPI API, LensifierRequestCallback Callback,
 #else
 			GRenderer = nullptr;
 #endif
+			break;
 		case RA_Direct3D9:
 		case RA_Direct3D11:
 			// FIXME: no 9 and 11 support yet
@@ -94,7 +95,7 @@ void LensifierShutdown(void)
  * @param	DepthTextureSlot	index of the texture slot to which scene depth is bound (sampler index in D3D, texture unit index in GL)
  */
 void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
-	LUINT ColourTextureSlot, LUINT DepthTextureSlot)
+	void *ColourTextureSlot, void *DepthTextureSlot)
 {
 	// early out on null renderer
 	if (!GRenderer)

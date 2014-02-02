@@ -17,6 +17,8 @@
 namespace Lensifier
 {
 
+const GLRenderer::TextureHandle	GLRenderer::InvalidTextureHandle = (GLuint)-1;
+
 const GLfloat GLRenderer::FSQuadVerts[] = {
 	-1,	-1,
 	-1,	 1,
@@ -84,7 +86,7 @@ const size_t GLRenderer::PixelShaderPostambleLen = strlen(PixelShaderPostamble);
 			TheEffect = new TheEffect ## Effect<GLRenderer>();				\
 			TheEffect ## BeginSetup();										\
 			Setup(ScreenWidth, ScreenHeight,								\
-				ColourTextureSlot, DepthTextureSlot);						\
+				ColourTexture, DepthTexture);								\
 			TheEffect ## EndSetup();										\
 			assert(TheEffect->GetEnabled());								\
 		}																	\
@@ -116,7 +118,7 @@ const size_t GLRenderer::PixelShaderPostambleLen = strlen(PixelShaderPostamble);
 			TheEffect = new TheEffect ## Effect<GLRenderer>();				\
 			TheEffect ## BeginSetup(0);										\
 			Setup(ScreenWidth, ScreenHeight,								\
-				ColourTextureSlot, DepthTextureSlot);						\
+				ColourTexture, DepthTexture);								\
 			TheEffect ## EndSetup(0);										\
 			assert(TheEffect->GetEnabled());								\
 		}																	\
@@ -169,24 +171,24 @@ GLRenderer::~GLRenderer()
 
 /** Notification issued by the library that the configuration has changed. */
 void GLRenderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
-		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
+		void *InColourTexture, void *InDepthTexture)
 {
 	if (DOF)
 	{
-		DOF->SceneColour.Set(InColourTextureSlot);
-		DOF->SceneDepth.Set(InDepthTextureSlot);
-		DOF->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
+		DOF->SceneColour.Set(InColourTexture);
+		DOF->SceneDepth.Set(InDepthTexture);
+		DOF->ScreenSize.Set(Vector2((float)InScreenWidth, (float)InScreenHeight));
 		DOF->TexelSize.Set(Vector2(1.f / InScreenWidth, 1.f / InScreenHeight));
 	}
 	if (DirtBloom)
 	{
-		DirtBloom->SceneColour.Set(InColourTextureSlot);
-		DirtBloom->FullRes.Set(InColourTextureSlot);
+		DirtBloom->SceneColour.Set(InColourTexture);
+		DirtBloom->FullRes.Set(InColourTexture);
 	}
 	if (TexturedDOF)
 	{
-		TexturedDOF->SceneColour.Set(InColourTextureSlot);
-		TexturedDOF->SceneDepth.Set(InDepthTextureSlot);
+		TexturedDOF->SceneColour.Set(InColourTexture);
+		TexturedDOF->SceneDepth.Set(InDepthTexture);
 		//TexturedDOF->TexelSize.Set(Vector2(1.f / InScreenWidth, 1.f / InScreenHeight));
 		TexturedDOF->TexelSize.Set(Vector2(1.f / 256, 1.f / 256));
 		if (InScreenWidth != ScreenWidth || InScreenHeight != ScreenHeight)
@@ -201,11 +203,11 @@ void GLRenderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 	}
 	if (WaterDroplets)
 	{
-		WaterDroplets->SceneColour.Set(InColourTextureSlot);
-		WaterDroplets->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
+		WaterDroplets->SceneColour.Set(InColourTexture);
+		WaterDroplets->ScreenSize.Set(Vector2((float)InScreenWidth, (float)InScreenHeight));
 	}
 	
-	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTextureSlot, InDepthTextureSlot);
+	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTexture, InDepthTexture);
 }
 
 /** Renders the configured effects. */

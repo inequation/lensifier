@@ -57,7 +57,7 @@ void LensifierShutdown(void);
  * @param	DepthTextureSlot	index of the texture slot to which scene depth is bound (sampler index in D3D, texture unit index in GL)
  */
 void LensifierSetup(LUINT ScreenWidth, LUINT ScreenHeight,
-	LUINT ColourTextureSlot, LUINT DepthTextureSlot);
+	void *ColourTexture, void *DepthTexture);
 
 void LensifierDOFSetEnabled(bool);
 void LensifierDOFBeginSetup(void);
@@ -71,14 +71,14 @@ void LensifierDOFEndSetup(void);
 void LensifierDirtBloomSetEnabled(bool);
 void LensifierDirtBloomBeginSetup(LUINT Pass);
 void LensifierDirtBloomSetBrightnessThreshold(float);
-void LensifierDirtBloomSetHalfRes(LUINT);
-void LensifierDirtBloomSetDirtTexture(LUINT);
+void LensifierDirtBloomSetHalfRes(void *);
+void LensifierDirtBloomSetDirtTexture(void *);
 void LensifierDirtBloomSetBrightnessGain(float);
 void LensifierDirtBloomEndSetup(LUINT Pass);
 
 void LensifierTexturedDOFSetEnabled(bool);
 void LensifierTexturedDOFBeginSetup(void);
-void LensifierTexturedDOFSetBokehTexture(LUINT);
+void LensifierTexturedDOFSetBokehTexture(void *);
 void LensifierTexturedDOFSetFocusDistance(float);
 void LensifierTexturedDOFSetFocusBreadth(float);
 void LensifierTexturedDOFSetBlurFalloffExponent(float);

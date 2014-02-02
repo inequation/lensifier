@@ -1,13 +1,13 @@
 #ifdef OP_PER_PARAM
 
 // params for pass #0 (bright pass filter)
-OP_PER_PARAM(0, LUINT, SceneColour, (LUINT)-1)
+OP_PER_PARAM(0, void *, SceneColour, (void *)RendererClass::InvalidTextureHandle)
 OP_PER_PARAM(0, float, BrightnessThreshold, std::numeric_limits<float>::quiet_NaN())
 
 // params for pass #1 (compositing)
-OP_PER_PARAM(1, LUINT, FullRes, (LUINT)-1)
-OP_PER_PARAM(1, LUINT, HalfRes, (LUINT)-1)
-OP_PER_PARAM(1, LUINT, DirtTexture, (LUINT)-1)
+OP_PER_PARAM(1, void *, FullRes, (void *)RendererClass::InvalidTextureHandle)
+OP_PER_PARAM(1, void *, HalfRes, (void *)RendererClass::InvalidTextureHandle)
+OP_PER_PARAM(1, void *, DirtTexture, (void *)RendererClass::InvalidTextureHandle)
 OP_PER_PARAM(1, float, BrightnessGain, std::numeric_limits<float>::quiet_NaN())
 
 #else // OP_PER_PARAM

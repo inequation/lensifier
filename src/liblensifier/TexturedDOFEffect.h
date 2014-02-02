@@ -1,6 +1,6 @@
 #ifdef OP_PER_PARAM
 
-OP_PER_PARAM(LUINT, BokehTexture, (LUINT)-1)
+OP_PER_PARAM(void *, BokehTexture, (void *)RendererClass::InvalidTextureHandle)
 OP_PER_PARAM(float, FocusDistance, std::numeric_limits<float>::quiet_NaN())
 OP_PER_PARAM(float, FocusBreadth, std::numeric_limits<float>::quiet_NaN())
 OP_PER_PARAM(float, BlurFalloffExponent, std::numeric_limits<float>::quiet_NaN())

@@ -43,13 +43,16 @@ public:
 	typedef GLint	ShaderParameterHandle;
 	typedef GLuint	IndexBufferHandle;
 	typedef GLuint	VertexBufferHandle;
+	typedef GLuint	TextureHandle;
+
+	static const TextureHandle	InvalidTextureHandle;
 	
 	GLRenderer();
 	virtual ~GLRenderer();
 	
 	/** Notification issued by the library that the configuration has changed. */
 	virtual void Setup(LUINT InScreenWidth, LUINT InScreenHeight,
-		LUINT ColourTextureSlot, LUINT DepthTextureSlot);
+		void *ColourTexture, void *DepthTexture);
 		
 	/**
 	 * Adds in the API-specific shader sugar, then compiles and links the shader
@@ -68,6 +71,8 @@ public:
 	{LGL(Uniform1i)(Param, (GLint)Value);}	
 	inline void SetShaderParameterValue(GLint Param, const GLuint Value)
 	{LGL(Uniform1i)(Param, Value);}	
+	inline void SetShaderParameterValue(GLint Param, const void *Value)
+	{LGL(Uniform1i)(Param, (GLuint)Value);}	
 	inline void SetShaderParameterValue(GLint Param, const float Value)
 	{LGL(Uniform1f)(Param, Value);}	
 	inline void SetShaderParameterValue(GLint Param, const Vector2& Value)
@@ -236,7 +241,7 @@ private:
 	static const size_t PixelShaderPostambleLen;
 	
 	GLuint GaussianBlur;
-	CachedShaderParam<GLRenderer, LUINT> GaussianBlurSceneColour;
+	CachedShaderParam<GLRenderer, void *> GaussianBlurSceneColour;
 	CachedShaderParam<GLRenderer, Vector2> GaussianBlurTexelSize;
 	CachedShaderParam<GLRenderer, bool> GaussianBlurHorizontal;
 };

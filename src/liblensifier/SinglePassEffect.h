@@ -1,7 +1,7 @@
 #ifdef OP_PER_PARAM
 
-OP_PER_PARAM(LUINT, SceneColour, (LUINT)-1)
-OP_PER_PARAM(LUINT, SceneDepth, (LUINT)-1)
+OP_PER_PARAM(void *, SceneColour, (void *)RendererClass::InvalidTextureHandle)
+OP_PER_PARAM(void *, SceneDepth, (void *)RendererClass::InvalidTextureHandle)
 OP_PER_PARAM(Vector2, ScreenSize, Vector2(std::numeric_limits<float>::quiet_NaN()))
 OP_PER_PARAM(Vector2, TexelSize, Vector2(std::numeric_limits<float>::quiet_NaN()))
 
