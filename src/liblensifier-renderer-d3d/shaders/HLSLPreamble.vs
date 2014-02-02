@@ -1,5 +1,4 @@
 STRINGIFY(
-
 struct VertexInput
 {
 	vec4 Position	: POSITION;
@@ -7,5 +6,4 @@ struct VertexInput
 	vec3 Normal		: NORMAL;
 	vec4 Colour		: COLOR0;
 };
-
 )
