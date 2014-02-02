@@ -19,6 +19,10 @@
 namespace Lensifier
 {
 
+const D3D10Renderer::TextureHandle	D3D10Renderer::InvalidTextureHandle = NULL;
+
+using namespace D3D10Helpers;
+
 const float D3D10Renderer::FSQuadVerts[] = {
 	-1,	-1,
 	-1,	 1,
@@ -80,7 +84,7 @@ const size_t D3D10Renderer::PixelShaderPostambleLen = strlen(PixelShaderPostambl
 			TheEffect = new TheEffect ## Effect<D3D10Renderer>();			\
 			TheEffect ## BeginSetup();										\
 			Setup(ScreenWidth, ScreenHeight,								\
-				ColourTextureSlot, DepthTextureSlot);						\
+				ColourTexture, DepthTexture);								\
 			TheEffect ## EndSetup();										\
 			assert(TheEffect->GetEnabled());								\
 		}																	\
@@ -110,7 +114,7 @@ const size_t D3D10Renderer::PixelShaderPostambleLen = strlen(PixelShaderPostambl
 			TheEffect = new TheEffect ## Effect<D3D10Renderer>();			\
 			TheEffect ## BeginSetup(0);										\
 			Setup(ScreenWidth, ScreenHeight,								\
-				ColourTextureSlot, DepthTextureSlot);						\
+				ColourTexture, DepthTexture);								\
 			TheEffect ## EndSetup(0);										\
 			assert(TheEffect->GetEnabled());								\
 		}																	\
@@ -166,24 +170,24 @@ D3D10Renderer::~D3D10Renderer()
 
 /** Notification issued by the library that the configuration has changed. */
 void D3D10Renderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
-		LUINT InColourTextureSlot, LUINT InDepthTextureSlot)
+		void *InColourTexture, void *InDepthTexture)
 {
 	if (DOF)
 	{
-		DOF->SceneColour.Set(InColourTextureSlot);
-		DOF->SceneDepth.Set(InDepthTextureSlot);
-		DOF->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
+		DOF->SceneColour.Set((TextureHandle)InColourTexture);
+		DOF->SceneDepth.Set((TextureHandle)InDepthTexture);
+		DOF->ScreenSize.Set(Vector2((float)InScreenWidth, (float)InScreenHeight));
 		DOF->TexelSize.Set(Vector2(1.f / InScreenWidth, 1.f / InScreenHeight));
 	}
 	if (DirtBloom)
 	{
-		DirtBloom->SceneColour.Set(InColourTextureSlot);
-		DirtBloom->FullRes.Set(InColourTextureSlot);
+		DirtBloom->SceneColour.Set((TextureHandle)InColourTexture);
+		DirtBloom->FullRes.Set((TextureHandle)InColourTexture);
 	}
 	if (TexturedDOF)
 	{
-		TexturedDOF->SceneColour.Set(InColourTextureSlot);
-		TexturedDOF->SceneDepth.Set(InDepthTextureSlot);
+		TexturedDOF->SceneColour.Set((TextureHandle)InColourTexture);
+		TexturedDOF->SceneDepth.Set((TextureHandle)InDepthTexture);
 		//TexturedDOF->TexelSize.Set(Vector2(1.f / InScreenWidth, 1.f / InScreenHeight));
 		TexturedDOF->TexelSize.Set(Vector2(1.f / 256, 1.f / 256));
 		if (InScreenWidth != ScreenWidth || InScreenHeight != ScreenHeight)
@@ -198,11 +202,11 @@ void D3D10Renderer::Setup(LUINT InScreenWidth, LUINT InScreenHeight,
 	}
 	if (WaterDroplets)
 	{
-		WaterDroplets->SceneColour.Set(InColourTextureSlot);
-		WaterDroplets->ScreenSize.Set(Vector2(InScreenWidth, InScreenHeight));
+		WaterDroplets->SceneColour.Set((TextureHandle)InColourTexture);
+		WaterDroplets->ScreenSize.Set(Vector2((float)InScreenWidth, (float)InScreenHeight));
 	}
 
-	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTextureSlot, InDepthTextureSlot);
+	Renderer::Setup(InScreenWidth, InScreenHeight, InColourTexture, InDepthTexture);
 }
 
 ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile)
@@ -218,6 +222,10 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		{"mat2",			"float2x2"},
 		{"mat3",			"float3x3"},
 		{"mat4",			"float4x4"},
+		{"Sampler1D",		"Texture1D"},
+		{"Sampler2D",		"Texture2D"},
+		{"Sampler3D",		"Texture3D"},
+		//{"Sampler4D",		"Texture4D"},
 
 		{NULL,				NULL}
 	};
@@ -259,15 +267,91 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		else
 			printf("%s shader compilation failed (0x%x) with no errors!\n", IsVertexShader ? "Vertex" : "Pixel", Result);
 #endif
+		Errors->Release();
 		return NULL;
 	}
+
 	return Blob;
+}
+
+void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
+{
+	size_t LastConstantOffset = 0;
+	size_t LastConstantSize = 0;
+	// NOTE: deliberately using D3D11 interfaces here! D3D10ReflectShader and friends are deprecated
+	ID3D11ShaderReflection *Reflection = NULL; 
+	HRESULT Result = D3DReflect(Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_ID3D11ShaderReflection, (void **)&Reflection);
+	if (SUCCEEDED(Result))
+	{
+		D3D11_SHADER_DESC Desc;
+		if (SUCCEEDED(Reflection->GetDesc(&Desc)))
+		{
+			ID3D11ShaderReflectionConstantBuffer *Buffer;
+			for (UINT i = 0; i < Desc.ConstantBuffers; ++i)
+			{
+				Buffer = Reflection->GetConstantBufferByIndex(i);
+				if (!Buffer)
+					continue;
+				D3D11_SHADER_BUFFER_DESC BufferDesc;
+				if (SUCCEEDED(Buffer->GetDesc(&BufferDesc)))
+				{
+					ID3D11ShaderReflectionVariable *Var;
+					for (UINT j = 0; j < BufferDesc.Variables; ++j)
+					{
+						Var = Buffer->GetVariableByIndex(j);
+						if (!Var)
+							continue;
+						D3D11_SHADER_VARIABLE_DESC VarDesc;
+						if (SUCCEEDED(Var->GetDesc(&VarDesc)))
+						{
+							//printf("Var: %s\n", VarDesc.Name);
+							OutShader->ConstantMap[std::string(VarDesc.Name)] = VarDesc.StartOffset;
+							if (LastConstantOffset < VarDesc.StartOffset)
+							{
+								LastConstantOffset = VarDesc.StartOffset;
+								LastConstantSize = VarDesc.Size;
+							}
+						}
+					}
+				}
+			}
+
+			for (UINT i = 0; i < Desc.BoundResources; ++i)
+			{
+				D3D11_SHADER_INPUT_BIND_DESC BindDesc;
+				if (SUCCEEDED(Reflection->GetResourceBindingDesc(i, &BindDesc)))
+				{
+					//printf("Bind: %s\n", BindDesc.Name);
+					if (BindDesc.Type == D3D_SIT_TEXTURE)
+						OutShader->TextureMap[std::string(BindDesc.Name)] = BindDesc.BindPoint;
+				}
+			}
+		}
+		Reflection->Release();
+	}
+
+	if (LastConstantSize > 0)
+	{
+		// round up to closest multiple of float4 (16 bytes)
+		static const size_t RegisterSize		= 0x10;
+		static const size_t RegisterSizeMask	= 0x0F;
+		size_t ConstantBufferSize = (LastConstantOffset + LastConstantSize) & ~RegisterSizeMask | RegisterSize;
+
+		D3D10_BUFFER_DESC Desc;
+		Desc.ByteWidth = ConstantBufferSize;
+		Desc.Usage = D3D10_USAGE_DYNAMIC;
+		Desc.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
+		Desc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+		Desc.MiscFlags = 0;
+
+		OutShader->ConstantBuffer = new Buffer;
+		Result = Device->CreateBuffer(&Desc, NULL, &OutShader->ConstantBuffer->D3DBuffer);
+	}
 }
 
 D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexShaderSource, const char *PixelShaderSource)
 {
-	ID3D10VertexShader *VS = NULL;
-	ID3D10PixelShader *PS = NULL;
+	Shader *VS = NULL, *PS = NULL;
 	HRESULT Result;
 
 	// HACK: prevent recompiling the generic effect over and over again
@@ -284,16 +368,21 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 			return NULL;
 		}
 
-		HRESULT Result = Device->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &VS);
-		if (FAILED(Result) || !VS)
+		ID3D10VertexShader *NativeVS = NULL;
+		HRESULT Result = Device->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &NativeVS);
+		if (FAILED(Result) || !NativeVS)
 		{
 #ifndef NDEBUG
 			printf("Failed to create VS from blob (0x%x)!\n", Result);
 #endif
 			VSBlob->Release();
-			if (VS)
+			if (NativeVS)
 				VS->Release();
 		}
+
+		VS = new Shader(NativeVS);
+		ReflectShader(VSBlob, VS);
+		NativeVS->Release();	// the Shader object adds a ref
 
 		// cache 
 		if (VertexShaderSource == EffectGenericVertexShader)
@@ -313,25 +402,29 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 		return NULL;
 	}
 
-	Result = Device->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), &PS);
-	if (FAILED(Result) || !PS)
+	ID3D10PixelShader *NativePS = NULL;
+	Result = Device->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), &NativePS);
+	if (FAILED(Result) || !NativePS)
 	{
 #ifndef NDEBUG
 		printf("Failed to create PS from blob (0x%x)!\n", Result);
 #endif
 		VS->Release();
 		PSBlob->Release();
-		if (PS)
+		if (NativePS)
 			PS->Release();
 	}
 
-	return new D3D10Program(VS, PS);
+	PS = new Shader(NativePS);
+	ReflectShader(PSBlob, PS);
+	NativePS->Release();	// the Shader object adds a ref
+
+	return new Program(VS, PS);
 }
 
 /** Renders the configured effects. */
 void D3D10Renderer::Render()
 {
-#if 0
 	if (DOF && DOF->GetEnabled())
 	{
 		SetRenderTarget(RT_BackBuffer);
@@ -357,7 +450,7 @@ void D3D10Renderer::Render()
 	if (TexturedDOF && TexturedDOF->GetEnabled())
 	{
 		SetRenderTarget(RT_ScratchSpace, 0);
-#if TEXTURED_DOF_TRIANGLE_STRIP
+/*#if TEXTURED_DOF_TRIANGLE_STRIP
 		DrawBuffers(Renderer::PT_TriangleStrip,
 			TexturedDOF->ParticleIndices, sizeof(LUINT), TexturedDOF->ParticleIndexCount,
 			TexturedDOF->ParticleVertices, sizeof(TexturedDOFEffect<D3D10Renderer>::VertLayout),
@@ -366,7 +459,7 @@ void D3D10Renderer::Render()
 		DrawBuffers(Renderer::PT_Points,
 			TexturedDOF->ParticleIndices, sizeof(LUINT), TexturedDOF->ParticleIndexCount,
 			TexturedDOF->ParticleVertices, sizeof(TexturedDOFEffect<D3D10Renderer>::VertLayout), 2);
-#endif
+#endif*/
 		SetRenderTarget(RT_BackBuffer);
 		BlitFromScratchSpace(0);
 	}
@@ -375,7 +468,6 @@ void D3D10Renderer::Render()
 		SetRenderTarget(RT_BackBuffer);
 		DrawFullScreenQuad();
 	}
-#endif
 }
 
 }
