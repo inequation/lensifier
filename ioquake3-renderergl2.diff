@@ -20,7 +20,7 @@ index 0146e8c..46f761d 100644
    ifeq ($(USE_OPENAL),1)
      ifneq ($(USE_OPENAL_DLOPEN),1)
 diff --git a/code/renderergl2/tr_backend.c b/code/renderergl2/tr_backend.c
-index d7abe6c..2cffc17 100644
+index d7abe6c..76ba2fe 100644
 --- a/code/renderergl2/tr_backend.c
 +++ b/code/renderergl2/tr_backend.c
 @@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -31,24 +31,94 @@ index d7abe6c..2cffc17 100644
  
  backEndData_t	*backEndData;
  backEndState_t	backEnd;
-@@ -1721,6 +1722,38 @@ const void *RB_PostProcess(const void *data)
+@@ -1600,6 +1601,60 @@ const void *RB_CapShadowMap(const void *data)
+ }
+ 
+ 
++bool Lensifier_Callback(LensifierRequest request, void *param)
++{
++    int divisor;
++    FBO_t *tempFBO = NULL, *currentRT;
++    switch (request)
++    {
++	case RQ_ReserveScratchSpace:
++	    divisor = 1 << (int)param;
++	    if (divisor < 1 || divisor > 2)
++	    {
++		ri.Error(ERR_FATAL, "Unsupported scratch space divisor %d!", divisor);
++		return false;
++	    }
++	    // otherwise it's already there
++	    break;
++	case RQ_SetRenderTarget:
++	    switch ((LensifierRenderTarget)((int)param & 0x0F))
++	    {
++		case RT_BackBuffer: tempFBO = tr.screenScratchFbo; break;
++		case RT_ScratchSpace:
++		    divisor = 1 << (((int)param & 0xF0) >> 4);
++		    switch (divisor)
++		    {
++			case 1: tempFBO = tr.textureScratchFbo[0]; break;
++			case 2: tempFBO = tr.quarterFbo[0]; break;
++			default:
++			    ri.Error(ERR_FATAL, "Unsupported scratch space divisor %d!", divisor);
++			    return false;
++		    }
++		    break;
++	    }
++	    FBO_Bind(tempFBO);
++	    qglViewport(0, 0, tempFBO->width, tempFBO->height);
++	    qglScissor(0, 0, tempFBO->width, tempFBO->height);
++	    break;
++	case RQ_BlitFromScratchSpace:
++	    divisor = 1 << (int)param;
++	    switch (divisor)
++	    {
++		case 1: tempFBO = tr.textureScratchFbo[0]; break;
++		case 2: tempFBO = tr.quarterFbo[0]; break;
++		default:
++		    ri.Error(ERR_FATAL, "Unsupported scratch space divisor %d!", divisor);
++		    return false;
++	    }
++	    currentRT = glState.currentFBO;
++	    FBO_FastBlit(tempFBO, NULL, currentRT, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
++	    FBO_Bind(currentRT);
++	    break;
++    }
++    return true;
++}
++
++
+ /*
+ =============
+ RB_PostProcess
+@@ -1721,6 +1776,97 @@ const void *RB_PostProcess(const void *data)
  		FBO_BlitFromTexture(tr.sunRaysImage, NULL, NULL, tr.screenScratchFbo, dstBox, NULL, NULL, 0);
  	}
  
 +	// LENSIFIER BEGIN ----------------------------------------------
 +	
 +	// reset current GL state
++	if (glState.currentVBO)
++	    GLSL_VertexAttribsState(0);
 +	R_BindNullVBO();
 +	R_BindNullIBO();
 +	GLSL_BindNullProgram();
-+	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
++	GL_State(GLS_DEPTHTEST_DISABLE);
 +	
 +	// bind scene colour and depth textures
-+	FBO_Bind(tr.screenScratchFbo);
 +	GL_SelectTexture(0);
 +	GL_Bind(tr.screenScratchFbo->colorImage[0]);
 +	GL_SelectTexture(1);
-+	GL_Bind(tr.renderDepthImage);	
++	GL_Bind(tr.renderDepthImage);
++	GL_SelectTexture(2);
++	GL_Bind(tr.quarterImage[0]);
++	extern image_t *LensifierDirtImage;
++	GL_SelectTexture(3);
++	GL_Bind(LensifierDirtImage);
++	extern image_t *LensifierBokehImage;
++	GL_SelectTexture(4);
++	GL_Bind(LensifierBokehImage);
 +	
 +	// setup DOF effect
 +	LensifierDOFBeginSetup();
@@ -62,7 +132,57 @@ index d7abe6c..2cffc17 100644
 +	LensifierDOFSetZFar(tr.viewParms.zFar);
 +	LensifierDOFEndSetup();
 +	
++	// setup the lens dirt bloom effect
++	LensifierDirtBloomBeginSetup(0);
++	extern cvar_t	*lensifier_dirt_brightnessThreshold;
++	LensifierDirtBloomSetBrightnessThreshold(lensifier_dirt_brightnessThreshold->value);
++	LensifierDirtBloomEndSetup(0);
++	LensifierDirtBloomBeginSetup(1);
++	extern cvar_t	*lensifier_dirt_brightnessGain;
++	LensifierDirtBloomSetBrightnessGain(lensifier_dirt_brightnessGain->value);
++	LensifierDirtBloomEndSetup(1);
++	
++	// setup textured DOF effect
++	LensifierTexturedDOFBeginSetup();
++	extern cvar_t	*lensifier_texturedDOF_FocusDistance;
++	extern cvar_t	*lensifier_texturedDOF_FocusBreadth;
++	extern cvar_t	*lensifier_texturedDOF_BlurFalloffExponent;
++	extern cvar_t	*lensifier_texturedDOF_MinBlur;
++	extern cvar_t	*lensifier_texturedDOF_MaxNearBlur;
++	extern cvar_t	*lensifier_texturedDOF_MaxFarBlur;
++	LensifierTexturedDOFSetFocusDistance(lensifier_texturedDOF_FocusDistance->value);
++	LensifierTexturedDOFSetFocusBreadth(lensifier_texturedDOF_FocusBreadth->value);
++	LensifierTexturedDOFSetBlurFalloffExponent(lensifier_texturedDOF_BlurFalloffExponent->value);
++	LensifierTexturedDOFSetMinBlur(lensifier_texturedDOF_MinBlur->value);
++	LensifierTexturedDOFSetMaxNearBlur(lensifier_texturedDOF_MaxNearBlur->value);
++	LensifierTexturedDOFSetMaxFarBlur(lensifier_texturedDOF_MaxFarBlur->value);
++	LensifierTexturedDOFSetZNear(MAX(tr.viewParms.zNear, r_znear->value));
++	LensifierTexturedDOFSetZFar(tr.viewParms.zFar);
++	LensifierTexturedDOFEndSetup();
++	
++	// setup water droplets effect
++	LensifierWaterDropletsBeginSetup();
++	static int SplashTime = -100000;
++	extern cvar_t	*lensifier_water_splash;
++	if (lensifier_water_splash->integer)
++	{
++	    ri.Cvar_Set("lensifier_water_splash", "0");
++	    SplashTime = backEnd.refdef.time;
++	    LensifierWaterDropletsSetRandomTime(5.f + random() * 10.f);
++	}
++	LensifierWaterDropletsSetTimer(backEnd.refdef.time * 0.001f);
++	LensifierWaterDropletsSetResetTimer((backEnd.refdef.time - SplashTime) * 0.001f);
++	LensifierWaterDropletsEndSetup();
++	
 +	// render the effects
++	extern cvar_t	*lensifier_dof_enabled;
++	extern cvar_t	*lensifier_dirt_enabled;
++	extern cvar_t	*lensifier_texturedDOF_enabled;
++	extern cvar_t	*lensifier_water_enabled;
++	LensifierDOFSetEnabled(lensifier_dof_enabled->integer);
++	LensifierDirtBloomSetEnabled(lensifier_dirt_enabled->integer);
++	LensifierTexturedDOFSetEnabled(lensifier_texturedDOF_enabled->integer);
++	LensifierWaterDropletsSetEnabled(lensifier_water_enabled->integer);
 +	LensifierRender();
 +	
 +	// LENSIFIER END ------------------------------------------------
@@ -71,7 +191,7 @@ index d7abe6c..2cffc17 100644
  
  	return (const void *)(cmd + 1);
 diff --git a/code/renderergl2/tr_init.c b/code/renderergl2/tr_init.c
-index d533024..b4b1e93 100644
+index d533024..05368fc 100644
 --- a/code/renderergl2/tr_init.c
 +++ b/code/renderergl2/tr_init.c
 @@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -82,40 +202,88 @@ index d533024..b4b1e93 100644
  
  glconfig_t  glConfig;
  glRefConfig_t glRefConfig;
-@@ -224,6 +225,10 @@ int		max_polys;
+@@ -224,6 +225,26 @@ int		max_polys;
  cvar_t	*r_maxpolyverts;
  int		max_polyverts;
  
++cvar_t	*lensifier_dof_enabled;
 +cvar_t	*lensifier_dof_focalDepth;
 +cvar_t	*lensifier_dof_focalLength;
 +cvar_t	*lensifier_dof_FStop;
++cvar_t	*lensifier_dirt_enabled;
++cvar_t	*lensifier_dirt_brightnessThreshold;
++cvar_t	*lensifier_dirt_brightnessGain;
++cvar_t	*lensifier_texturedDOF_enabled;
++cvar_t	*lensifier_texturedDOF_FocusDistance;
++cvar_t	*lensifier_texturedDOF_FocusBreadth;
++cvar_t	*lensifier_texturedDOF_BlurFalloffExponent;
++cvar_t	*lensifier_texturedDOF_MinBlur;
++cvar_t	*lensifier_texturedDOF_MaxNearBlur;
++cvar_t	*lensifier_texturedDOF_MaxFarBlur;
++cvar_t	*lensifier_water_enabled;
++cvar_t	*lensifier_water_splash;
++
++image_t	*LensifierDirtImage = NULL;
++image_t	*LensifierBokehImage = NULL;
 +
  /*
  ** InitOpenGL
  **
-@@ -270,6 +275,10 @@ static void InitOpenGL( void )
- 
- 	// set default state
- 	GL_SetDefaultState();
-+	
-+	LensifierInit(RA_OpenGL, NULL);
-+	LensifierSetup(glConfig.vidWidth, glConfig.vidHeight, 0, 1);
-+	LensifierDOFSetEnabled(true);
- }
- 
- /*
-@@ -1303,6 +1312,10 @@ void R_Register( void )
+@@ -1303,6 +1324,23 @@ void R_Register( void )
  
  	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
  	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);
 +	
++	lensifier_dof_enabled = ri.Cvar_Get("lensifier_dof_enabled", "0", CVAR_ARCHIVE);
 +	lensifier_dof_focalDepth = ri.Cvar_Get("lensifier_dof_focalDepth", "1.0", CVAR_ARCHIVE);
 +	lensifier_dof_focalLength = ri.Cvar_Get("lensifier_dof_focalLength", "50.0", CVAR_ARCHIVE);
 +	lensifier_dof_FStop = ri.Cvar_Get("lensifier_dof_FStop", "5", CVAR_ARCHIVE);
++	lensifier_dirt_enabled = ri.Cvar_Get("lensifier_dirt_enabled", "0", CVAR_ARCHIVE);
++	lensifier_dirt_brightnessThreshold = ri.Cvar_Get("lensifier_dirt_brightnessThreshold", "0.5", CVAR_ARCHIVE);
++	lensifier_dirt_brightnessGain = ri.Cvar_Get("lensifier_dirt_brightnessGain", "2.0", CVAR_ARCHIVE);
++	lensifier_texturedDOF_enabled = ri.Cvar_Get("lensifier_texturedDOF_enabled", "0", CVAR_ARCHIVE);
++	lensifier_texturedDOF_FocusDistance = ri.Cvar_Get("lensifier_texturedDOF_FocusDistance", "200", CVAR_ARCHIVE);
++	lensifier_texturedDOF_FocusBreadth = ri.Cvar_Get("lensifier_texturedDOF_FocusBreadth", "50", CVAR_ARCHIVE);
++	lensifier_texturedDOF_BlurFalloffExponent = ri.Cvar_Get("lensifier_texturedDOF_BlurFalloffExponent", "2.0", CVAR_ARCHIVE);
++	lensifier_texturedDOF_MinBlur = ri.Cvar_Get("lensifier_texturedDOF_MinBlur", "0", CVAR_ARCHIVE);
++	lensifier_texturedDOF_MaxNearBlur = ri.Cvar_Get("lensifier_texturedDOF_MaxNearBlur", "0.5", CVAR_ARCHIVE);
++	lensifier_texturedDOF_MaxFarBlur = ri.Cvar_Get("lensifier_texturedDOF_MaxFarBlur", "0.5", CVAR_ARCHIVE);
++	lensifier_water_enabled = ri.Cvar_Get("lensifier_water_enabled", "0", CVAR_ARCHIVE);
++	lensifier_water_splash = ri.Cvar_Get("lensifier_water_splash", "0", CVAR_ARCHIVE);
  
  	// make sure all the commands added here are also
  	// removed in R_Shutdown
-@@ -1477,6 +1490,8 @@ void RE_Shutdown( qboolean destroyWindow ) {
+@@ -1435,6 +1473,29 @@ void R_Init( void ) {
+ 	err = qglGetError();
+ 	if ( err != GL_NO_ERROR )
+ 		ri.Printf (PRINT_ALL, "glGetError() = 0x%x\n", err);
++	
++	ri.Printf(PRINT_ALL, "Initializing Lensifier... ");
++	extern bool Lensifier_Callback(LensifierRequest request, void *param);
++	LensifierInit(RA_OpenGL, Lensifier_Callback, NULL);
++	LensifierSetup(glConfig.vidWidth, glConfig.vidHeight, 0, 1);
++	LensifierDOFSetEnabled(true);
++	LensifierDirtBloomSetEnabled(true);
++	LensifierDirtBloomBeginSetup(1);
++	LensifierDirtBloomSetHalfRes(2);
++	LensifierDirtBloomSetDirtTexture(3);
++	LensifierDirtBloomEndSetup(1);
++	LensifierDirtImage = R_FindImageFile("textures/lens_dirt.tga", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
++	LensifierTexturedDOFSetEnabled(true);
++	LensifierTexturedDOFBeginSetup();
++	LensifierTexturedDOFSetBokehTexture(4);
++	LensifierTexturedDOFEndSetup();
++	LensifierBokehImage = R_FindImageFile("textures/bokeh.tga", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
++	LensifierWaterDropletsSetEnabled(true);
++	LensifierDOFSetEnabled(lensifier_dof_enabled->integer);
++	LensifierDirtBloomSetEnabled(lensifier_dirt_enabled->integer);
++	LensifierTexturedDOFSetEnabled(lensifier_texturedDOF_enabled->integer);
++	LensifierWaterDropletsSetEnabled(lensifier_water_enabled->integer);
++	ri.Printf(PRINT_ALL, "done!\n");
+ 
+ 	// print info
+ 	GfxInfo_f();
+@@ -1477,6 +1538,8 @@ void RE_Shutdown( qboolean destroyWindow ) {
  
  	// shut down platform specific OpenGL stuff
  	if ( destroyWindow ) {
@@ -124,32 +292,3 @@ index d533024..b4b1e93 100644
  		GLimp_Shutdown();
  
  		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
-diff --git a/code/sys/sys_main.c b/code/sys/sys_main.c
-index 40e8a9f..c032162 100644
---- a/code/sys/sys_main.c
-+++ b/code/sys/sys_main.c
-@@ -445,7 +445,7 @@ void *Sys_LoadDll(const char *name, qboolean useSystemLib)
- 		if(!*topDir)
- 			topDir = ".";
- 
--		Com_Printf("Trying to load \"%s\" from \"%s\"...\n", name, topDir);
-+		Com_Printf("Failed (%s).\nTrying to load \"%s\" from \"%s\"...\n", Sys_LibraryError(), name, topDir);
- 		Com_sprintf(libPath, sizeof(libPath), "%s%c%s", topDir, PATH_SEP, name);
- 
- 		if(!(dllhandle = Sys_LoadLibrary(libPath)))
-@@ -457,13 +457,13 @@ void *Sys_LoadDll(const char *name, qboolean useSystemLib)
- 			
- 			if(FS_FilenameCompare(topDir, basePath))
- 			{
--				Com_Printf("Trying to load \"%s\" from \"%s\"...\n", name, basePath);
-+				Com_Printf("Failed (%s).\nTrying to load \"%s\" from \"%s\"...\n", Sys_LibraryError(), name, basePath);
- 				Com_sprintf(libPath, sizeof(libPath), "%s%c%s", basePath, PATH_SEP, name);
- 				dllhandle = Sys_LoadLibrary(libPath);
- 			}
- 			
- 			if(!dllhandle)
--				Com_Printf("Loading \"%s\" failed\n", name);
-+				Com_Printf("Loading \"%s\" failed (%s)\n", name, Sys_LibraryError());
- 		}
- 	}
- 	
