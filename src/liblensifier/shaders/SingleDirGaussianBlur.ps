@@ -18,7 +18,7 @@ vec4 LensifierMain(PixelInput Input)
 	// the base pixel needs to have a very low weight, otherwise it biases the
 	// result way to much; and without it we get artifacts
 	float Kernel = 0.12 * float(GAUSS_SIZE);
-	vec4 Result = Sample2D(SceneColour, Input.TexCoords.xy) * Kernel;//vec4(0.0);
+	vec4 Result = Sample2D(SceneColour, Input.TexCoords.xy) * Kernel;//vec4(0.0, 0.0, 0.0, 0.0);
 	float Total = Kernel;//0.0;
 	int i;
 	int j;

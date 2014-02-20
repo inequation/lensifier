@@ -24,8 +24,8 @@ float Saturate(float In) {return saturate(In);}
 vec2 Saturate(vec2 In) {return saturate(In);}
 vec3 Saturate(vec3 In) {return saturate(In);}
 vec4 Saturate(vec4 In) {return saturate(In);}
-float Blend(float A, float B, float Alpha) {return A * (1.0 - Alpha) + B * Alpha;}
-vec2 Blend(vec2 A, vec2 B, float Alpha) {return A * (1.0 - Alpha) + B * Alpha;}
-vec3 Blend(vec3 A, vec3 B, float Alpha) {return A * (1.0 - Alpha) + B * Alpha;}
-vec4 Blend(vec4 A, vec4 B, float Alpha) {return A * (1.0 - Alpha) + B * Alpha;}
+float Blend(float A, float B, float Alpha) {return lerp(A, B, Alpha);}
+vec2 Blend(vec2 A, vec2 B, float Alpha) {return lerp(A, B, Alpha);}
+vec3 Blend(vec3 A, vec3 B, float Alpha) {return lerp(A, B, Alpha);}
+vec4 Blend(vec4 A, vec4 B, float Alpha) {return lerp(A, B, Alpha);}
 )
