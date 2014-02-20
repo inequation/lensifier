@@ -1,9 +1,10 @@
 STRINGIFY(
+// NOTE: MUST match the declaration in D3D10Renderer.cpp!!!
 struct VertexInput
 {
 	vec4 Position	: POSITION;
-	vec4 TexCoords	: TEXCOORD0;
+	vec4 TexCoords	: TEXCOORD;
 	vec3 Normal		: NORMAL;
-	vec4 Colour		: COLOR0;
+	vec4 Colour		: COLOR;
 };
 )
