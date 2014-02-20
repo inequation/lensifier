@@ -21,16 +21,16 @@ namespace Lensifier
 
 const D3D10Renderer::TextureHandle	D3D10Renderer::InvalidTextureHandle = NULL;
 
-using namespace D3D10Helpers;
-
-const float D3D10Renderer::FSQuadVerts[] = {
-	-1,	-1,
-	-1,	 1,
-	 1,	-1,
-	 1,	 1,
+// NOTE: MUST match the declaration in HLSLPreamble.vs!!!
+const D3D10_INPUT_ELEMENT_DESC	D3D10Renderer::ElementDescs[] =
+{
+	{"POSITION",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 0,	D3D10_INPUT_PER_VERTEX_DATA, 0},
+	{"TEXCOORD",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 16,	D3D10_INPUT_PER_VERTEX_DATA, 0},
+	{"NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 28,	D3D10_INPUT_PER_VERTEX_DATA, 0},
+	{"COLOR",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 44,	D3D10_INPUT_PER_VERTEX_DATA, 0},
 };
 
-const BYTE D3D10Renderer::FSQuadIndices[] = {0, 1, 2, 3};
+using namespace D3D10Helpers;
 
 #define STRINGIFY(x)	#x
 const char D3D10Renderer::VertexShaderPreamble[] =
@@ -147,10 +147,46 @@ void D3D10Renderer::WaterDropletsSet ## Name(Type Value) {if (WaterDroplets) Wat
 D3D10Renderer::D3D10Renderer(void *InDevice)
 	: Device((ID3D10Device *)InDevice)
 	, GenericVS(NULL)
+	, GenericVSBlob(NULL)
 	, GaussianBlurSceneColour(NULL)
 	, GaussianBlurTexelSize(Vector2())
 	, GaussianBlurHorizontal(false)
+	, FSQuadVB(NULL)
 {
+	// initialize the full-screen quad data
+	D3D10_BUFFER_DESC BufDesc;
+	D3D10_SUBRESOURCE_DATA InitData;
+	static const VertexInput Vertices[3] = 
+	{
+		{
+			{-1.f,	 1.f,	 0.f,	 0.f},	// POSITION
+			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
+			{ 0.f,	 0.f,	 1.f},			// NORMAL
+			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
+		},
+		{
+			{ 3.f,	 1.f,	 2.f,	 0.f},	// POSITION
+			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
+			{ 0.f,	 0.f,	 1.f},			// NORMAL
+			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
+		},
+		{
+			{-1.f,	-3.f,	 0.f,	 2.f},	// POSITION
+			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
+			{ 0.f,	 0.f,	 1.f},			// NORMAL
+			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
+		},
+	};
+
+	BufDesc.Usage					= D3D10_USAGE_IMMUTABLE;
+    BufDesc.ByteWidth				= sizeof(Vertices);
+    BufDesc.BindFlags				= D3D10_BIND_VERTEX_BUFFER;
+    BufDesc.CPUAccessFlags			= 0;
+    BufDesc.MiscFlags				= 0;
+	InitData.pSysMem				= Vertices;
+
+	HRESULT Result = Device->CreateBuffer(&BufDesc, &InitData, &FSQuadVB);
+
 	GaussianBlur = CompileProgram(EffectGenericVertexShader,
 		SingleDirGaussianBlurPixelShader);
 	// HACK!!! this is so that GRenderer is valid while Register() is called
@@ -164,8 +200,15 @@ D3D10Renderer::D3D10Renderer(void *InDevice)
 
 D3D10Renderer::~D3D10Renderer()
 {
+	if (FSQuadVB)
+		FSQuadVB->Release();
+
 	ReleaseProgram(GaussianBlur);
-	GenericVS->Release();
+
+	if (GenericVS)
+		GenericVS->Release();
+	if (GenericVSBlob)
+		GenericVSBlob->Release();
 }
 
 /** Notification issued by the library that the configuration has changed. */
@@ -227,6 +270,12 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		{"Sampler3D",		"Texture3D"},
 		//{"Sampler4D",		"Texture4D"},
 
+		// function aliases
+		{"fract",			"frac"},
+		{"mix",				"lerp"},
+		{"dFdx",			"ddx"},
+		{"dFdy",			"ddy"},
+
 		{NULL,				NULL}
 	};
 	ID3D10Blob *Blob;
@@ -286,6 +335,15 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 		D3D11_SHADER_DESC Desc;
 		if (SUCCEEDED(Reflection->GetDesc(&Desc)))
 		{
+			/*D3D11_SIGNATURE_PARAMETER_DESC InputDesc;
+			for (UINT i = 0; i < Desc.InputParameters; ++i)
+			{
+				if (SUCCEEDED(Reflection->GetInputParameterDesc(i, &InputDesc)))
+				{
+					printf("%s: %d\n", InputDesc.SemanticName, InputDesc.SemanticIndex);
+				}
+			}*/
+
 			ID3D11ShaderReflectionConstantBuffer *Buffer;
 			for (UINT i = 0; i < Desc.ConstantBuffers; ++i)
 			{
@@ -354,13 +412,19 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 	Shader *VS = NULL, *PS = NULL;
 	HRESULT Result;
 
+	ID3D10Blob *VSBlob = NULL, *PSBlob = NULL;
+
 	// HACK: prevent recompiling the generic effect over and over again
 	extern const char EffectGenericVertexShader[];
 	if (VertexShaderSource == EffectGenericVertexShader && GenericVS)
+	{
 		VS = GenericVS;
+		VSBlob = GenericVSBlob;
+		VSBlob->AddRef();
+	}
 	else
 	{
-		ID3D10Blob *VSBlob = CompileShader(VertexShaderSource, "vs_4_0");
+		VSBlob = CompileShader(VertexShaderSource, "vs_4_0");
 		if (!VSBlob)
 		{
 			if (VSBlob)
@@ -389,14 +453,16 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 		{
 			GenericVS = VS;
 			GenericVS->AddRef();
+			GenericVSBlob = VSBlob;
+			VSBlob->AddRef();
 		}
 	}
 
-	ID3D10Blob *PSBlob;
 	PSBlob = CompileShader(PixelShaderSource, "ps_4_0");
 	if (!PSBlob)
 	{
 		VS->Release();
+		VSBlob->Release();
 		if (PSBlob)
 			PSBlob->Release();
 		return NULL;
@@ -419,7 +485,18 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 	ReflectShader(PSBlob, PS);
 	NativePS->Release();	// the Shader object adds a ref
 
-	return new Program(VS, PS);
+	ID3D10InputLayout *IL = NULL;
+	Result = Device->CreateInputLayout(ElementDescs, sizeof(ElementDescs) / sizeof(ElementDescs[0]), VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &IL);
+
+	// we no longer need this
+	PSBlob->Release();
+	VSBlob->Release();
+
+	Program *RetVal = new Program(VS, PS, IL);
+	// the Program object adds refs
+	PS->Release();
+	VS->Release();
+	return RetVal;
 }
 
 /** Renders the configured effects. */
@@ -428,12 +505,14 @@ void D3D10Renderer::Render()
 	if (DOF && DOF->GetEnabled())
 	{
 		SetRenderTarget(RT_BackBuffer);
+		DOF->Program->Bind(Device);
 		DrawFullScreenQuad();
 	}
 	if (DirtBloom && DirtBloom->GetEnabled())
 	{
 		// bright pass to half-res scratch space
 		SetRenderTarget(RT_ScratchSpace, 1);
+		DirtBloom->Program[0]->Bind(Device);
 		DrawFullScreenQuad();
 		// separable gaussian blur - horizontal
 		GaussianBlurSceneColour.Set(DirtBloom->HalfRes.Get());
@@ -445,11 +524,14 @@ void D3D10Renderer::Render()
 		DrawFullScreenQuad();
 		// composite blur onto scene image
 		SetRenderTarget(RT_BackBuffer);
+		DirtBloom->Program[1]->Bind(Device);
 		DrawFullScreenQuad();
 	}
 	if (TexturedDOF && TexturedDOF->GetEnabled())
 	{
 		SetRenderTarget(RT_ScratchSpace, 0);
+		//LGL(Clear)(GL_COLOR_BUFFER_BIT);
+		TexturedDOF->Program->Bind(Device);
 /*#if TEXTURED_DOF_TRIANGLE_STRIP
 		DrawBuffers(Renderer::PT_TriangleStrip,
 			TexturedDOF->ParticleIndices, sizeof(LUINT), TexturedDOF->ParticleIndexCount,
@@ -466,6 +548,7 @@ void D3D10Renderer::Render()
 	if (WaterDroplets && WaterDroplets->GetEnabled())
 	{
 		SetRenderTarget(RT_BackBuffer);
+		WaterDroplets->Program->Bind(Device);
 		DrawFullScreenQuad();
 	}
 }

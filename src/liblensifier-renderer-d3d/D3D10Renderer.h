@@ -39,7 +39,7 @@ namespace D3D10Helpers
 		ID3D10Buffer					*D3DBuffer;
 
 		Buffer() : Data(NULL), D3DBuffer(NULL) {}
-		~Buffer() {if (Data) D3DBuffer->Unmap(); D3DBuffer->Release();}
+		~Buffer() {Release();}
 		inline void *GetData()
 		{
 			if (!Data)
@@ -55,7 +55,15 @@ namespace D3D10Helpers
 			}
 		}
 		ULONG AddRef() {return D3DBuffer->AddRef();}
-		ULONG Release() {return D3DBuffer->Release();}
+		ULONG Release()
+		{
+			if (!D3DBuffer)
+				return 0;
+			if (Data) D3DBuffer->Unmap();
+			ID3D10Buffer *Buf = D3DBuffer;
+			D3DBuffer = NULL;
+			return Buf->Release();
+		}
 	};
 
 	// encapsulates a shader and its reflection data
@@ -100,7 +108,7 @@ namespace D3D10Helpers
 		{
 			if (Stage >= LAST_STAGE)
 			{
-				Buf->Release();
+				// Buf will release the underlying D3D buffer
 				delete Buf;
 			}
 		}
@@ -110,18 +118,27 @@ namespace D3D10Helpers
 	struct Program
 	{
 		Shader							*VS, *PS;
+		ID3D10InputLayout				*IL;
 
-		Program(Shader *InVS, Shader *InPS) : VS(InVS), PS(InPS) {}
-		~Program() {VS->Release(); PS->Release();}
+		Program(Shader *InVS, Shader *InPS, ID3D10InputLayout *InIL) : VS(InVS), PS(InPS), IL(InIL) {VS->AddRef(); PS->AddRef(); IL->AddRef();}
+		~Program() {VS->Release(); PS->Release(); IL->Release();}
 
 		inline void Bind(ID3D10Device *Device)
 		{
-			VS->ConstantBuffer->Commit();
-			PS->ConstantBuffer->Commit();
 			Device->VSSetShader(VS->Vertex);
-			Device->VSSetConstantBuffers(0, 1, &VS->ConstantBuffer->D3DBuffer);
+			if (VS->ConstantBuffer)
+			{
+				VS->ConstantBuffer->Commit();
+				Device->VSSetConstantBuffers(0, 1, &VS->ConstantBuffer->D3DBuffer);
+			}
+			Device->GSSetShader(NULL);
 			Device->PSSetShader(PS->Pixel);
-			Device->PSSetConstantBuffers(0, 1, &PS->ConstantBuffer->D3DBuffer);
+			if (PS->ConstantBuffer)
+			{
+				PS->ConstantBuffer->Commit();
+				Device->PSSetConstantBuffers(0, 1, &PS->ConstantBuffer->D3DBuffer);
+			}
+			Device->IASetInputLayout(IL);
 		}
 	};
 }
@@ -173,17 +190,17 @@ public:
 	}
 	
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const bool Value)
-	{*(UINT *)((BYTE *)Param->Buf->GetData())[Param->Offset] = (UINT)Value;}
+	{*(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const LUINT Value)
-	{*(UINT *)((BYTE *)Param->Buf->GetData())[Param->Offset] = (UINT)Value;}
+	{*(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const float Value)
-	{*(float *)((BYTE *)Param->Buf->GetData())[Param->Offset] = Value;}
+	{*(float *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector2& Value)
-	{*(Vector2 *)((BYTE *)Param->Buf->GetData())[Param->Offset] = Value;}
+	{*(Vector2 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector3& Value)
-	{*(Vector3 *)((BYTE *)Param->Buf->GetData())[Param->Offset] = Value;}
+	{*(Vector3 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector4& Value)
-	{*(Vector4 *)((BYTE *)Param->Buf->GetData())[Param->Offset] = Value;}
+	{*(Vector4 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const TextureHandle Value)
 	{
 		switch (Param->Stage)
@@ -249,19 +266,34 @@ public:
 	virtual void Render();
 
 private:
+	// NOTE: MUST match the declaration in HLSLPreamble.vs!!!
+	struct VertexInput
+	{
+		float Position[4];
+		float TexCoords[4];
+		float Normal[3];
+		float Colour[4];
+	};
+
 	ID3D10Blob *CompileShader(const char *Source, const char *Profile);
+	/** Returns the number of input parameters. */
 	void ReflectShader(ID3D10Blob *Blob, D3D10Helpers::Shader *OutShader);
 
 	ID3D10Device				*Device;
 	D3D10Helpers::Shader		*GenericVS;
+	ID3D10Blob					*GenericVSBlob;
 
 	inline void DrawFullScreenQuad()
 	{
-		// TODO
+		static const UINT Stride = sizeof(VertexInput);
+		static const UINT Offset = 0;
+		Device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		Device->IASetVertexBuffers(0, 1, &FSQuadVB, &Stride, &Offset);
+		Device->Draw(3, 0);
 	}
 
-	static const float			FSQuadVerts[];
-	static const unsigned char	FSQuadIndices[];
+	ID3D10Buffer				*FSQuadVB;
+	static const D3D10_INPUT_ELEMENT_DESC	ElementDescs[];
 	static const char			VertexShaderPreamble[];
 	static const size_t			VertexShaderPreambleLen;
 	static const char			VertexShaderPostamble[];
