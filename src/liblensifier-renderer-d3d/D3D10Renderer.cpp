@@ -165,14 +165,14 @@ D3D10Renderer::D3D10Renderer(void *InDevice)
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
 		},
 		{
-			{ 3.f,	 1.f,	 2.f,	 0.f},	// POSITION
-			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
+			{ 3.f,	 1.f,	 0.f,	 0.f},	// POSITION
+			{ 2.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
 			{ 0.f,	 0.f,	 1.f},			// NORMAL
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
 		},
 		{
-			{-1.f,	-3.f,	 0.f,	 2.f},	// POSITION
-			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
+			{-1.f,	-3.f,	 0.f,	 0.f},	// POSITION
+			{ 0.f,	 2.f,	 0.f,	 0.f},	// TEXCOORD0
 			{ 0.f,	 0.f,	 1.f},			// NORMAL
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
 		},
@@ -265,10 +265,10 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		{"mat2",			"float2x2"},
 		{"mat3",			"float3x3"},
 		{"mat4",			"float4x4"},
-		{"Sampler1D",		"Texture1D"},
-		{"Sampler2D",		"Texture2D"},
-		{"Sampler3D",		"Texture3D"},
-		//{"Sampler4D",		"Texture4D"},
+		{"Sampler1D",		"Texture1D<float4>"},
+		{"Sampler2D",		"Texture2D<float4>"},
+		{"Sampler3D",		"Texture3D<float4>"},
+		//{"Sampler4D",		"Texture4D<float4>"},
 
 		// function aliases
 		{"fract",			"frac"},
