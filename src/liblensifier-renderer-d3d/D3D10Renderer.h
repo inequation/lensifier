@@ -81,7 +81,7 @@ namespace D3D10Helpers
 		OffsetMap						TextureMap;
 
 		Shader(ID3D10DeviceChild *InShader) : DeviceChild(InShader), ConstantBuffer(NULL) {AddRef();}
-		~Shader() {Release(); if (ConstantBuffer) ConstantBuffer->Release();}
+		~Shader() {Release(); delete ConstantBuffer;}
 		ULONG AddRef() {return DeviceChild->AddRef();}
 		ULONG Release() {return DeviceChild->Release();}
 	};
@@ -107,10 +107,7 @@ namespace D3D10Helpers
 		~ShaderParam()
 		{
 			if (Stage >= LAST_STAGE)
-			{
-				// Buf will release the underlying D3D buffer
-				delete Buf;
-			}
+				Buf->Release();
 		}
 	};
 
