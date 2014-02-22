@@ -504,12 +504,16 @@ void D3D10Renderer::Render()
 {
 	if (DOF && DOF->GetEnabled())
 	{
+		DOF->SceneColour.Refresh();
+		DOF->SceneDepth.Refresh();
 		SetRenderTarget(RT_BackBuffer);
 		DOF->Program->Bind(Device);
 		DrawFullScreenQuad();
 	}
 	if (DirtBloom && DirtBloom->GetEnabled())
 	{
+		DirtBloom->SceneColour.Refresh();
+		DirtBloom->FullRes.Refresh();
 		// bright pass to half-res scratch space
 		SetRenderTarget(RT_ScratchSpace, 1);
 		DirtBloom->Program[0]->Bind(Device);
@@ -529,6 +533,8 @@ void D3D10Renderer::Render()
 	}
 	if (TexturedDOF && TexturedDOF->GetEnabled())
 	{
+		TexturedDOF->SceneColour.Refresh();
+		TexturedDOF->SceneDepth.Refresh();
 		SetRenderTarget(RT_ScratchSpace, 0);
 		//LGL(Clear)(GL_COLOR_BUFFER_BIT);
 		TexturedDOF->Program->Bind(Device);
@@ -547,6 +553,7 @@ void D3D10Renderer::Render()
 	}
 	if (WaterDroplets && WaterDroplets->GetEnabled())
 	{
+		WaterDroplets->SceneColour.Refresh();
 		SetRenderTarget(RT_BackBuffer);
 		WaterDroplets->Program->Bind(Device);
 		DrawFullScreenQuad();
