@@ -108,15 +108,8 @@ public:
 	inline void ReleaseProgram(ProgramHandle Program)
 	{delete Program;}
 
-	inline ID3D10Buffer	*UploadIndicesToBuffer(void *Data, size_t Count, size_t ElementSize)
-	{
-		return NULL;
-	}
-	
-	inline ID3D10Buffer	*UploadVerticesToBuffer(void *Data, size_t Count, size_t ElementSize)
-	{
-		return NULL;
-	}
+	ID3D10Buffer *UploadVerticesToBuffer(void *Data, size_t Count, size_t ElementSize);
+	ID3D10Buffer *UploadIndicesToBuffer(void *Data, size_t Count, size_t ElementSize);
 
 	/** Notification issued by the library that the configuration has changed. */
 	virtual void Setup(LUINT InScreenWidth, LUINT InScreenHeight,

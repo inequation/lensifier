@@ -553,4 +553,34 @@ void D3D10Renderer::Render()
 	}
 }
 
+ID3D10Buffer *D3D10Renderer::UploadVerticesToBuffer(void *Data, size_t Count, size_t ElementSize)
+{
+	ID3D10Buffer *Buf = NULL;
+	D3D10_BUFFER_DESC Desc;
+	D3D10_SUBRESOURCE_DATA InitData;
+	Desc.ByteWidth = Count * ElementSize;
+	Desc.Usage = D3D10_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D10_BIND_VERTEX_BUFFER;
+	Desc.CPUAccessFlags = 0;
+	Desc.MiscFlags = 0;
+	InitData.pSysMem = Data;
+	HRESULT Result = Device->CreateBuffer(&Desc, &InitData, &Buf);
+	return Buf;
+}
+	
+ID3D10Buffer *D3D10Renderer::UploadIndicesToBuffer(void *Data, size_t Count, size_t ElementSize)
+{
+	ID3D10Buffer *Buf = NULL;
+	D3D10_BUFFER_DESC Desc;
+	D3D10_SUBRESOURCE_DATA InitData;
+	Desc.ByteWidth = Count * ElementSize;
+	Desc.Usage = D3D10_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D10_BIND_INDEX_BUFFER;
+	Desc.CPUAccessFlags = 0;
+	Desc.MiscFlags = 0;
+	InitData.pSysMem = Data;
+	HRESULT Result = Device->CreateBuffer(&Desc, &InitData, &Buf);
+	return Buf;
+}
+
 }
