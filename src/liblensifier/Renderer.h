@@ -128,6 +128,11 @@ struct CachedShaderParam
 				((RendererClass *)GRenderer)->SetShaderParameterValue(Handle, Val);
 			}
 		}
+
+		inline void Refresh()
+		{
+			((RendererClass *)GRenderer)->SetShaderParameterValue(Handle, CachedValue);
+		}
 		
 		inline T Get() const { return CachedValue; }
 	
