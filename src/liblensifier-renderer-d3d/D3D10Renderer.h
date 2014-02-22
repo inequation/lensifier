@@ -78,17 +78,17 @@ public:
 	}
 	
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const bool Value)
-	{*(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
+	{if (Param->Buf) *(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const LUINT Value)
-	{*(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
+	{if (Param->Buf) *(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const float Value)
-	{*(float *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
+	{if (Param->Buf) *(float *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector2& Value)
-	{*(Vector2 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
+	{if (Param->Buf) *(Vector2 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector3& Value)
-	{*(Vector3 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
+	{if (Param->Buf) *(Vector3 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const Vector4& Value)
-	{*(Vector4 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
+	{if (Param->Buf) *(Vector4 *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const TextureHandle Value)
 	{
 		switch (Param->Stage)
