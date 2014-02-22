@@ -21,6 +21,9 @@
     <ClInclude Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Renderer.cpp">

@@ -65,6 +65,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Helpers.h" />
     <ClInclude Include="..\..\..\src\liblensifier-renderer-d3d\D3D10Renderer.h" />
   </ItemGroup>
   <ItemGroup>
