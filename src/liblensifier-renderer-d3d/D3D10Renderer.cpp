@@ -159,19 +159,19 @@ D3D10Renderer::D3D10Renderer(void *InDevice)
 	static const VertexInput Vertices[3] = 
 	{
 		{
-			{-1.f,	 1.f,	 0.f,	 0.f},	// POSITION
+			{-1.f,	 1.f,	 0.5f,	 1.f},	// POSITION
 			{ 0.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
 			{ 0.f,	 0.f,	 1.f},			// NORMAL
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
 		},
 		{
-			{ 3.f,	 1.f,	 0.f,	 0.f},	// POSITION
+			{ 3.f,	 1.f,	 0.5f,	 1.f},	// POSITION
 			{ 2.f,	 0.f,	 0.f,	 0.f},	// TEXCOORD0
 			{ 0.f,	 0.f,	 1.f},			// NORMAL
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
 		},
 		{
-			{-1.f,	-3.f,	 0.f,	 0.f},	// POSITION
+			{-1.f,	-3.f,	 0.5f,	 1.f},	// POSITION
 			{ 0.f,	 2.f,	 0.f,	 0.f},	// TEXCOORD0
 			{ 0.f,	 0.f,	 1.f},			// NORMAL
 			{ 1.f,	 1.f,	 1.f,	 1.f},	// COLOR0
