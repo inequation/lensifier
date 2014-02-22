@@ -2,9 +2,9 @@
 STRINGIFY(
 SamplerState LensifierSamplerBilinear
 {
-    Filter = MIN_MAG_LINEAR_MIP_POINT;
-    AddressU = Wrap;
-    AddressV = Wrap;
+	Filter = MIN_MAG_LINEAR_MIP_POINT;
+	AddressU = Wrap;
+	AddressV = Wrap;
 };
 vec4 Sample1D(Texture1D Texture, float Coord) {return Texture.Sample(LensifierSamplerBilinear, Coord);}
 vec4 Sample2D(Texture2D Texture, vec2 Coord) {return Texture.Sample(LensifierSamplerBilinear, Coord);}
@@ -28,4 +28,11 @@ float Blend(float A, float B, float Alpha) {return lerp(A, B, Alpha);}
 vec2 Blend(vec2 A, vec2 B, float Alpha) {return lerp(A, B, Alpha);}
 vec3 Blend(vec3 A, vec3 B, float Alpha) {return lerp(A, B, Alpha);}
 vec4 Blend(vec4 A, vec4 B, float Alpha) {return lerp(A, B, Alpha);}
+
+struct PixelInput
+{
+    vec4 Position       : SV_POSITION;
+	vec4 TexCoords		: TEXCOORD0;
+	vec4 VertexColour	: COLOR0;
+};
 )
