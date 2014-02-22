@@ -325,8 +325,7 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 
 void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 {
-	size_t LastConstantOffset = 0;
-	size_t LastConstantSize = 0;
+	size_t ConstantBufferSize = 0;
 	// NOTE: deliberately using D3D11 interfaces here! D3D10ReflectShader and friends are deprecated
 	ID3D11ShaderReflection *Reflection = NULL; 
 	HRESULT Result = D3DReflect(Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_ID3D11ShaderReflection, (void **)&Reflection);
@@ -353,6 +352,7 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 				D3D11_SHADER_BUFFER_DESC BufferDesc;
 				if (SUCCEEDED(Buffer->GetDesc(&BufferDesc)))
 				{
+					ConstantBufferSize += BufferDesc.Size;
 					ID3D11ShaderReflectionVariable *Var;
 					for (UINT j = 0; j < BufferDesc.Variables; ++j)
 					{
@@ -361,15 +361,7 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 							continue;
 						D3D11_SHADER_VARIABLE_DESC VarDesc;
 						if (SUCCEEDED(Var->GetDesc(&VarDesc)))
-						{
-							//printf("Var: %s\n", VarDesc.Name);
 							OutShader->ConstantMap[std::string(VarDesc.Name)] = VarDesc.StartOffset;
-							if (LastConstantOffset < VarDesc.StartOffset)
-							{
-								LastConstantOffset = VarDesc.StartOffset;
-								LastConstantSize = VarDesc.Size;
-							}
-						}
 					}
 				}
 			}
@@ -388,13 +380,8 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 		Reflection->Release();
 	}
 
-	if (LastConstantSize > 0)
+	if (ConstantBufferSize > 0)
 	{
-		// round up to closest multiple of float4 (16 bytes)
-		static const size_t RegisterSize		= 0x10;
-		static const size_t RegisterSizeMask	= 0x0F;
-		size_t ConstantBufferSize = (LastConstantOffset + LastConstantSize) & ~RegisterSizeMask | RegisterSize;
-
 		D3D10_BUFFER_DESC Desc;
 		Desc.ByteWidth = ConstantBufferSize;
 		Desc.Usage = D3D10_USAGE_DYNAMIC;
@@ -405,6 +392,8 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 		OutShader->ConstantBuffer = new Buffer;
 		Result = Device->CreateBuffer(&Desc, NULL, &OutShader->ConstantBuffer->D3DBuffer);
 	}
+	else
+		OutShader->ConstantBuffer = NULL;
 }
 
 D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexShaderSource, const char *PixelShaderSource)
