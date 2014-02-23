@@ -179,10 +179,10 @@ D3D10Renderer::D3D10Renderer(void *InDevice)
 	};
 
 	BufDesc.Usage					= D3D10_USAGE_IMMUTABLE;
-    BufDesc.ByteWidth				= sizeof(Vertices);
-    BufDesc.BindFlags				= D3D10_BIND_VERTEX_BUFFER;
-    BufDesc.CPUAccessFlags			= 0;
-    BufDesc.MiscFlags				= 0;
+	BufDesc.ByteWidth				= sizeof(Vertices);
+	BufDesc.BindFlags				= D3D10_BIND_VERTEX_BUFFER;
+	BufDesc.CPUAccessFlags			= 0;
+	BufDesc.MiscFlags				= 0;
 	InitData.pSysMem				= Vertices;
 
 	HRESULT Result = Device->CreateBuffer(&BufDesc, &InitData, &FSQuadVB);
@@ -390,7 +390,10 @@ void D3D10Renderer::ReflectShader(ID3D10Blob *Blob, Shader *OutShader)
 		Desc.MiscFlags = 0;
 
 		OutShader->ConstantBuffer = new Buffer;
-		Result = Device->CreateBuffer(&Desc, NULL, &OutShader->ConstantBuffer->D3DBuffer);
+		ID3D10Buffer *Buf;
+		Result = Device->CreateBuffer(&Desc, NULL, &Buf);
+		if (SUCCEEDED(Result))
+			OutShader->ConstantBuffer->Set(Buf, &Desc);
 	}
 	else
 		OutShader->ConstantBuffer = NULL;

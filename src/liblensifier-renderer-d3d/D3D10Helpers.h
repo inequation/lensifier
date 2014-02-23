@@ -20,24 +20,33 @@ namespace D3D10Helpers
 	class Buffer
 	{
 		void							*Data;
-
-	public:
+		size_t							DataLength;
 		ID3D10Buffer					*D3DBuffer;
 
+	public:
 		Buffer() : Data(NULL), D3DBuffer(NULL) {}
-		~Buffer() {Release();}
-		inline void *GetData()
+		~Buffer() {Release(); delete [] Data;}
+		inline void *GetData() {return Data;}
+		inline ID3D10Buffer *GetBuffer() {return D3DBuffer;}
+		inline void Set(ID3D10Buffer *Buf, D3D10_BUFFER_DESC *Desc)
 		{
-			if (!Data)
-				D3DBuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, &Data);
-			return Data;
+			D3DBuffer = Buf;
+			if (Data)
+				delete Data;
+			DataLength = Desc->ByteWidth;
+			Data = new BYTE[DataLength];
 		}
 		inline void Commit()
 		{
 			if (Data)
 			{
-				D3DBuffer->Unmap();
-				Data = NULL;
+				void *BufData = NULL;
+				HRESULT Result = D3DBuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, &BufData);
+				if (SUCCEEDED(Result))
+				{
+					memcpy(BufData, Data, DataLength);
+					D3DBuffer->Unmap();
+				}
 			}
 		}
 		ULONG AddRef() {return D3DBuffer->AddRef();}
@@ -112,14 +121,16 @@ namespace D3D10Helpers
 			if (VS->ConstantBuffer)
 			{
 				VS->ConstantBuffer->Commit();
-				Device->VSSetConstantBuffers(0, 1, &VS->ConstantBuffer->D3DBuffer);
+				ID3D10Buffer *Buf = VS->ConstantBuffer->GetBuffer();
+				Device->VSSetConstantBuffers(0, 1, &Buf);
 			}
 			Device->GSSetShader(NULL);
 			Device->PSSetShader(PS->Pixel);
 			if (PS->ConstantBuffer)
 			{
 				PS->ConstantBuffer->Commit();
-				Device->PSSetConstantBuffers(0, 1, &PS->ConstantBuffer->D3DBuffer);
+				ID3D10Buffer *Buf = PS->ConstantBuffer->GetBuffer();
+				Device->PSSetConstantBuffers(0, 1, &Buf);
 			}
 			Device->IASetInputLayout(IL);
 		}
