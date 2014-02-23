@@ -78,14 +78,30 @@
     <ClInclude Include="..\..\..\src\liblensifier\WaterDropletsEffect.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\liblensifier\shaders\DirtBloomEffectBrightPass.ps" />
-    <None Include="..\..\..\src\liblensifier\shaders\DirtBloomEffectCompositePass.ps" />
-    <None Include="..\..\..\src\liblensifier\shaders\DOFEffect.ps" />
-    <None Include="..\..\..\src\liblensifier\shaders\GenericEffect.vs" />
-    <None Include="..\..\..\src\liblensifier\shaders\SingleDirGaussianBlur.ps" />
-    <None Include="..\..\..\src\liblensifier\shaders\TexturedDOFEffect.ps" />
-    <None Include="..\..\..\src\liblensifier\shaders\TexturedDOFEffect.vs" />
-    <None Include="..\..\..\src\liblensifier\shaders\WaterDropletsEffect.ps" />
+    <None Include="..\..\..\src\liblensifier\shaders\DirtBloomEffectBrightPass.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\DirtBloomEffectCompositePass.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\DOFEffect.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\GenericEffect.vs">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\SingleDirGaussianBlur.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\TexturedDOFEffect.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\TexturedDOFEffect.vs">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier\shaders\WaterDropletsEffect.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
