@@ -118,20 +118,8 @@ namespace D3D10Helpers
 		inline void Bind(ID3D10Device *Device)
 		{
 			Device->VSSetShader(VS->Vertex);
-			if (VS->ConstantBuffer)
-			{
-				VS->ConstantBuffer->Commit();
-				ID3D10Buffer *Buf = VS->ConstantBuffer->GetBuffer();
-				Device->VSSetConstantBuffers(0, 1, &Buf);
-			}
 			Device->GSSetShader(NULL);
 			Device->PSSetShader(PS->Pixel);
-			if (PS->ConstantBuffer)
-			{
-				PS->ConstantBuffer->Commit();
-				ID3D10Buffer *Buf = PS->ConstantBuffer->GetBuffer();
-				Device->PSSetConstantBuffers(0, 1, &Buf);
-			}
 			Device->IASetInputLayout(IL);
 		}
 	};

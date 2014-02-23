@@ -78,7 +78,7 @@ public:
 	}
 	
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const bool Value)
-	{if (Param->Buf) *(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
+	{if (Param->Buf) *(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = Value ? (UINT)-1 : 0;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const LUINT Value)
 	{if (Param->Buf) *(UINT *)&(((BYTE *)Param->Buf->GetData())[Param->Offset]) = (UINT)Value;}
 	inline void SetShaderParameterValue(ShaderParameterHandle Param, const float Value)
@@ -164,8 +164,21 @@ private:
 	D3D10Helpers::Shader		*GenericVS;
 	ID3D10Blob					*GenericVSBlob;
 
-	inline void DrawFullScreenQuad()
+	inline void DrawFullScreenQuad(const ProgramHandle Program)
 	{
+		Program->Bind(Device);
+		if (Program->VS->ConstantBuffer)
+		{
+			Program->VS->ConstantBuffer->Commit();
+			ID3D10Buffer *Buf = Program->VS->ConstantBuffer->GetBuffer();
+			Device->VSSetConstantBuffers(0, 1, &Buf);
+		}
+		if (Program->PS->ConstantBuffer)
+		{
+			Program->PS->ConstantBuffer->Commit();
+			ID3D10Buffer *Buf = Program->PS->ConstantBuffer->GetBuffer();
+			Device->PSSetConstantBuffers(0, 1, &Buf);
+		}
 		static const UINT Stride = sizeof(VertexInput);
 		static const UINT Offset = 0;
 		Device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
