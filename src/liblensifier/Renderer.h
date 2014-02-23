@@ -120,9 +120,9 @@ struct CachedShaderParam
 			Handle = ((RendererClass *)GRenderer)->GetShaderParameter(Program, Name);
 		}
 		
-		inline void Set(const T& Val)
+		inline void Set(const T& Val, const bool Force = false)
 		{
-			if (CachedValue != Val)
+			if (Force || CachedValue != Val)
 			{
 				CachedValue = Val;
 				((RendererClass *)GRenderer)->SetShaderParameterValue(Handle, Val);
