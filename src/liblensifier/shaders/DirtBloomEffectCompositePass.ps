@@ -4,14 +4,14 @@ uniform Sampler2D HalfRes;
 uniform Sampler2D DirtTexture;
 uniform float BrightnessGain;
 
-const float BleedFactor = 0.5;
+static const float BleedFactor = 0.5;
 
 vec4 Gain(vec4 Colour)
 {
 	Colour *= BrightnessGain;
 	
 	// bleed excessive channel values into the other channels
-	vec4 RGBBleed = BleedFactor * max(vec4(0.0, 0.0, 0.0, 0.0), Colour - vec4(1.0));
+	vec4 RGBBleed = BleedFactor * max(vec4(0.0, 0.0, 0.0, 0.0), Colour - vec4(1.0, 1.0, 1.0, 1.0));
 	vec4 Bleed = vec4(
 		RGBBleed.g + RGBBleed.b,
 		RGBBleed.r + RGBBleed.b,
