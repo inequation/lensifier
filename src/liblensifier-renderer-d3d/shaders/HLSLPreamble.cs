@@ -13,6 +13,12 @@ vec4 Sample2D(Texture2D Texture, vec2 Coord)
 	Coord = Coord * vec2(1.0, -1.0) + vec2(0.0, 1.0);
 	return Texture.Sample(LensifierSamplerBilinear, Coord);
 }
+vec4 Sample2DMS(Texture2DMS<float4, LENSIFIER_MS_SAMPLES> Texture, int2 Coord)
+{
+	// flip V to convert from OpenGL convention
+	Coord = Coord * vec2(1.0, -1.0) + vec2(0.0, 1.0);
+	return Texture.Load(Coord, LENSIFIER_MS_SAMPLES / 2);
+}
 vec4 Sample3D(Texture3D Texture, vec3 Coord)
 {
 	// flip V to convert from OpenGL convention
@@ -30,6 +36,12 @@ vec4 Sample3D(Texture3D Texture, vec3 Coord)
 STRINGIFY(
 vec4 Sample1D(sampler1D Sampler, float Coord) {return tex1D(Sampler, Coord);}
 vec4 Sample2D(sampler2D Sampler, vec2 Coord)
+{
+	// flip V to convert from OpenGL convention
+	Coord = Coord * vec2(1.0, -1.0) + vec2(0.0, 1.0);
+	return tex2D(Sampler, Coord);
+}
+vec4 Sample2DSM(sampler2DMS Sampler, vec2 Coord)
 {
 	// flip V to convert from OpenGL convention
 	Coord = Coord * vec2(1.0, -1.0) + vec2(0.0, 1.0);
