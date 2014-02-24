@@ -77,12 +77,14 @@ namespace D3D10Helpers
 
 		Shader(ID3D10DeviceChild *InShader) : DeviceChild(InShader), ConstantBuffer(NULL) {AddRef();}
 	private:
-		~Shader() {if (ConstantBuffer) ConstantBuffer->Release();}
+		~Shader() {}
 	public:
-		ULONG AddRef() {return DeviceChild->AddRef();}
+		ULONG AddRef() {if (ConstantBuffer) ConstantBuffer->AddRef(); return DeviceChild->AddRef();}
 		ULONG Release()
 		{
 			ULONG Count = DeviceChild->Release();
+			if (ConstantBuffer)
+				ConstantBuffer->Release();
 			if (Count == 0)
 				delete this;
 			return Count;
