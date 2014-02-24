@@ -57,7 +57,7 @@ uniform float FStop; //f-stop value
 uniform float ZNear; //camera clipping start
 uniform float ZFar; //camera clipping end
 
-static bool ShowFocus = true; //show debug focus point and focal range (red = focal point, green = focal range)
+static bool ShowFocus = false; //show debug focus point and focal range (red = focal point, green = focal range)
 
 //------------------------------------------
 //user variables
@@ -229,7 +229,6 @@ float vignette(vec2 TexCoords)
 
 vec4 LensifierMain(in PixelInput Input)
 {
-return Sample2DMS(SceneDepth,Input.TexCoords.xy * ScreenSize).x;
 	//scene depth calculation
 	
 	float depth = linearize(Sample2DMS(SceneDepth,Input.TexCoords.xy).x);
