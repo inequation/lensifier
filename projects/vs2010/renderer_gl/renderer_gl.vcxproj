@@ -66,11 +66,21 @@
     <ClCompile Include="..\..\..\src\liblensifier-renderer-gl\GLRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPostamble.ps" />
-    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPostamble.vs" />
-    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.cs" />
-    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.ps" />
-    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.vs" />
+    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPostamble.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPostamble.vs">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.cs">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.ps">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\..\..\src\liblensifier-renderer-gl\shaders\GLSLPreamble.vs">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
