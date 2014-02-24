@@ -102,7 +102,7 @@ public:
 	
 	/** Releases the given shader parameter. */
 	void ReleaseShaderParameter(ShaderParameterHandle Param)
-	{delete Param;}
+	{if (Param != (ShaderParameterHandle)-1) delete Param;}
 	
 	/** Releases the given program. */
 	inline void ReleaseProgram(ProgramHandle Program)
