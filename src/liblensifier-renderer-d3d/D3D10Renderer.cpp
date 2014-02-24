@@ -200,15 +200,21 @@ D3D10Renderer::D3D10Renderer(void *InDevice)
 
 D3D10Renderer::~D3D10Renderer()
 {
+	ULONG Count;
 	if (FSQuadVB)
-		FSQuadVB->Release();
+		Count = FSQuadVB->Release();
 
 	ReleaseProgram(GaussianBlur);
 
+	delete DOF;
+	delete DirtBloom;
+	delete TexturedDOF;
+	delete WaterDroplets;
+
 	if (GenericVS)
-		GenericVS->Release();
+		Count = GenericVS->Release();
 	if (GenericVSBlob)
-		GenericVSBlob->Release();
+		Count = GenericVSBlob->Release();
 }
 
 /** Notification issued by the library that the configuration has changed. */
@@ -257,6 +263,7 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 	static const D3D10_SHADER_MACRO Macros[] = {
 		{"LENSIFIER_GLSL",	"0"},
 		{"LENSIFIER_HLSL",	"40"},	//	Shader Model 4.0
+		{"LENSIFIER_MS_SAMPLES", "16"},
 
 		// type aliases
 		{"vec2",			"float2"},
@@ -267,6 +274,7 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		{"mat4",			"float4x4"},
 		{"Sampler1D",		"Texture1D<float4>"},
 		{"Sampler2D",		"Texture2D<float4>"},
+		{"Sampler2DMS",		"Texture2DMS<float4, LENSIFIER_MS_SAMPLES>"},
 		{"Sampler3D",		"Texture3D<float4>"},
 		//{"Sampler4D",		"Texture4D<float4>"},
 
@@ -285,7 +293,7 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 
 	static const UINT Flags = D3D10_SHADER_OPTIMIZATION_LEVEL2
 #ifndef NDEBUG
-		| D3D10_SHADER_DEBUG | D3D10_SHADER_WARNINGS_ARE_ERRORS
+		| D3D10_SHADER_DEBUG
 #endif
 		;
 
@@ -296,29 +304,35 @@ ID3D10Blob *D3D10Renderer::CompileShader(const char *Source, const char *Profile
 		+ (IsVertexShader ? VertexShaderPostambleLen : PixelShaderPostambleLen)
 		+ strlen(Source) + 3;
 	char *CompleteSource = new char[CompleteLength];
-	_snprintf_s(CompleteSource, CompleteLength + 2, _TRUNCATE, "%s\n%s\n%s",
+	_snprintf_s(CompleteSource, CompleteLength, _TRUNCATE, "%s\n%s\n%s",
 		IsVertexShader ? VertexShaderPreamble : PixelShaderPreamble,
 		Source,
 		IsVertexShader ? VertexShaderPostamble : PixelShaderPostamble);
 
-	HRESULT Result = D3DCompile(CompleteSource, strlen(CompleteSource), NULL, Macros, NULL, "main", Profile, Flags, 0, &Blob,
+	assert(CompleteLength - 1 == strlen(CompleteSource));
+
+	HRESULT Result = D3DCompile(CompleteSource, CompleteLength - 1, NULL, Macros, NULL, "main", Profile, Flags, 0, &Blob,
 #ifndef NDEBUG
 		&Errors
 #else
 		NULL
 #endif
 	);
+	
+#ifndef NDEBUG
+	if (Errors)
+	{
+		printf("%s shader compilation log:\n%s\n", IsVertexShader ? "Vertex" : "Pixel", (char *)Errors->GetBufferPointer());
+		Errors->Release();
+	}
+#endif
 	if (FAILED(Result))
 	{
-#ifndef NDEBUG
-		if (Errors)
-			printf("%s shader compilation failed (0x%x):\n%s\n", IsVertexShader ? "Vertex" : "Pixel", Result, (char *)Errors->GetBufferPointer());
-		else
-			printf("%s shader compilation failed (0x%x) with no errors!\n", IsVertexShader ? "Vertex" : "Pixel", Result);
-#endif
-		Errors->Release();
+		printf("%s shader compilation failed (0x%x)!\n", IsVertexShader ? "Vertex" : "Pixel", Result);
 		return NULL;
 	}
+
+	delete [] CompleteSource;
 
 	return Blob;
 }
@@ -411,6 +425,7 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 	if (VertexShaderSource == EffectGenericVertexShader && GenericVS)
 	{
 		VS = GenericVS;
+		VS->AddRef();
 		VSBlob = GenericVSBlob;
 		VSBlob->AddRef();
 	}
@@ -488,6 +503,7 @@ D3D10Renderer::ProgramHandle D3D10Renderer::CompileProgram(const char *VertexSha
 	// the Program object adds refs
 	PS->Release();
 	VS->Release();
+	IL->Release();
 	return RetVal;
 }
 
@@ -499,29 +515,43 @@ void D3D10Renderer::Render()
 		DOF->SceneColour.Refresh();
 		DOF->SceneDepth.Refresh();
 		SetRenderTarget(RT_BackBuffer);
-		DOF->Program->Bind(Device);
-		DrawFullScreenQuad();
+		DrawFullScreenQuad(DOF->Program);
 	}
 	if (DirtBloom && DirtBloom->GetEnabled())
 	{
 		DirtBloom->SceneColour.Refresh();
-		DirtBloom->FullRes.Refresh();
 		// bright pass to half-res scratch space
 		SetRenderTarget(RT_ScratchSpace, 1);
-		DirtBloom->Program[0]->Bind(Device);
-		DrawFullScreenQuad();
+		DrawFullScreenQuad(DirtBloom->Program[0]);
 		// separable gaussian blur - horizontal
-		GaussianBlurSceneColour.Set(DirtBloom->HalfRes.Get());
-		GaussianBlurTexelSize.Set(Vector2(3.f / 640.f, 3.f / 360.f));
-		GaussianBlurHorizontal.Set(true);
-		DrawFullScreenQuad();
+			// HACK!! in D3D we can't render to the same RT we read from
+			GaussianBlurSceneColour.Set(NULL, true);
+		GaussianBlurSceneColour.Set(DirtBloom->HalfRes.Get(), true);
+			// HACK!! in D3D we can't render to the same RT we read from
+			void *HalfRes = DirtBloom->HalfRes.Get();
+			DirtBloom->HalfRes.Set(NULL, true);
+			SetRenderTarget(RT_ScratchSpace, 2);	// this also sets DirtBloom->HalfRes in the callback
+			void *BlurSRV = DirtBloom->HalfRes.Get();
+			GaussianBlurSceneColour.Set(HalfRes, true);
+		GaussianBlurTexelSize.Set(Vector2(3.f / (float)ScreenWidth, 3.f / (float)ScreenHeight), true);
+		GaussianBlurHorizontal.Set(true, true);
+		DrawFullScreenQuad(GaussianBlur);
 		// separable gaussian blur - vertical
-		GaussianBlurHorizontal.Set(false);
-		DrawFullScreenQuad();
+			// HACK!! in D3D we can't render to the same RT we read from
+			GaussianBlurSceneColour.Set(NULL, true);
+			SetRenderTarget(RT_ScratchSpace, 1);
+			GaussianBlurSceneColour.Set(BlurSRV, true);
+		GaussianBlurHorizontal.Set(false, true);
+		GaussianBlurSceneColour.Set(DirtBloom->HalfRes.Get());
+		DrawFullScreenQuad(GaussianBlur);
 		// composite blur onto scene image
 		SetRenderTarget(RT_BackBuffer);
-		DirtBloom->Program[1]->Bind(Device);
-		DrawFullScreenQuad();
+			// HACK!! in D3D we can't render to the same RT we read from
+			DirtBloom->HalfRes.Set(HalfRes, true);
+		DirtBloom->FullRes.Refresh();
+		DirtBloom->HalfRes.Refresh();
+		DirtBloom->DirtTexture.Refresh();
+		DrawFullScreenQuad(DirtBloom->Program[1]);
 	}
 	if (TexturedDOF && TexturedDOF->GetEnabled())
 	{
@@ -547,8 +577,7 @@ void D3D10Renderer::Render()
 	{
 		WaterDroplets->SceneColour.Refresh();
 		SetRenderTarget(RT_BackBuffer);
-		WaterDroplets->Program->Bind(Device);
-		DrawFullScreenQuad();
+		DrawFullScreenQuad(WaterDroplets->Program);
 	}
 }
 

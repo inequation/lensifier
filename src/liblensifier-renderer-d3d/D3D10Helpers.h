@@ -23,9 +23,11 @@ namespace D3D10Helpers
 		size_t							DataLength;
 		ID3D10Buffer					*D3DBuffer;
 
+		// private destructor so that can't be deleted from outside
+		~Buffer() {delete [] Data;}
+
 	public:
 		Buffer() : Data(NULL), D3DBuffer(NULL) {}
-		~Buffer() {Release(); delete [] Data;}
 		inline void *GetData() {return Data;}
 		inline ID3D10Buffer *GetBuffer() {return D3DBuffer;}
 		inline void Set(ID3D10Buffer *Buf, D3D10_BUFFER_DESC *Desc)
@@ -52,12 +54,10 @@ namespace D3D10Helpers
 		ULONG AddRef() {return D3DBuffer->AddRef();}
 		ULONG Release()
 		{
-			if (!D3DBuffer)
-				return 0;
-			if (Data) D3DBuffer->Unmap();
-			ID3D10Buffer *Buf = D3DBuffer;
-			D3DBuffer = NULL;
-			return Buf->Release();
+			ULONG Count = D3DBuffer ? D3DBuffer->Release() : 0;
+			if (Count == 0)
+				delete this;
+			return Count;
 		}
 	};
 
@@ -76,9 +76,17 @@ namespace D3D10Helpers
 		OffsetMap						TextureMap;
 
 		Shader(ID3D10DeviceChild *InShader) : DeviceChild(InShader), ConstantBuffer(NULL) {AddRef();}
-		~Shader() {Release(); delete ConstantBuffer;}
+	private:
+		~Shader() {if (ConstantBuffer) ConstantBuffer->Release();}
+	public:
 		ULONG AddRef() {return DeviceChild->AddRef();}
-		ULONG Release() {return DeviceChild->Release();}
+		ULONG Release()
+		{
+			ULONG Count = DeviceChild->Release();
+			if (Count == 0)
+				delete this;
+			return Count;
+		}
 	};
 
 	// encapsulates a constant in a buffer or a resource view
