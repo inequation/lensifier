@@ -15,6 +15,21 @@ class MultiPassEffect : public Effect<RendererClass>
 {
 public:
 	DECLARE_EFFECT_1T(Effect, RendererClass)
+
+	MultiPassEffect()
+		#define OP_PER_PARAM(Type, Name, Default) , INIT_PARAM(Name, Default)	
+		#include "MultiPassEffect.h"
+		#undef OP_PER_PARAM
+	{
+		for (LUINT i = 0; i < NumPasses; ++i)
+			Program[i] = 0;
+	}
+
+	virtual ~MultiPassEffect()
+	{
+		for (LUINT i = 0; i < NumPasses; ++i)
+			RENDERER->ReleaseProgram(Program[i]);
+	}
 	
 protected:
 	virtual void Register()
