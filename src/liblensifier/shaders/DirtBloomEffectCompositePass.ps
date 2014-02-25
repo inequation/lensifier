@@ -25,8 +25,12 @@ vec4 Gain(vec4 Colour)
 vec4 LensifierMain(PixelInput Input)
 {
 	vec4 Scene = Sample2D(FullRes, Input.TexCoords.xy);
-	vec4 Dirt = Gain(Sample2D(HalfRes, Input.TexCoords.xy))
-		* Sample2D(DirtTexture, Input.TexCoords.xy);
+	vec4 Highlight
+		// direct contribution at this area
+		= Gain(Sample2D(HalfRes, Input.TexCoords.xy))
+		// point-reflected, weaker contribution to simulate lens flare
+		+ 0.075 * Gain(Sample2D(HalfRes, vec2(1.0, 1.0) - Input.TexCoords.xy));
+	vec4 Dirt = Highlight * Sample2D(DirtTexture, Input.TexCoords.xy);
 	float DirtAlpha = Dirt.a;
 	Dirt.a = 0.0;
 	//return vec4(Blend(Scene, Dirt, DirtAlpha));
